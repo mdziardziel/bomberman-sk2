@@ -1,3 +1,4 @@
+# via https://cmake.org/cmake-tutorial/
 cmake_minimum_required (VERSION 2.6)
 project (BombermanServer)
 
@@ -13,7 +14,7 @@ configure_file (
   )
 
 # add the binary tree to the search path for include files
-# so that we will find ServerConfig.h
+# so that we will find ServerConfig.hpp
 include_directories("${PROJECT_BINARY_DIR}")
 
-add_executable(BombermanServer main.cpp)
+add_executable(bin/BombermanServer main.cpp)

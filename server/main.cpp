@@ -1,14 +1,12 @@
 // 'Hello World!' program 
  
 #include <iostream>
-#include "BombermanServerConfig.hpp"
+#include "ServerConfig.hpp"
  
 int main()
 {
   std::cout << "Hello World!" << std::endl;
-  fprintf(stdout,"%s Version %d.%d\n",
-          argv[0],
-          BombermanServer_VERSION_MAJOR,
-          BombermanServer_VERSION_MINOR);
+  std::cout << BombermanServer_VERSION_MAJOR << std::endl;
+  std::cout << BombermanServer_VERSION_MINOR << std::endl;
   return 0;
 }
