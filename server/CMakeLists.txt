@@ -4,7 +4,8 @@ project (BombermanServer)
 
 # The version number.
 set (BombermanServer_VERSION_MAJOR 1)
-set (BombermanServer_VERSION_MINOR 0)
+set (BombermanServer_VERSION_MINOR 1)
+set (CMAKE_CXX_STANDARD 11)
 
 # configure a header file to pass some of the CMake settings
 # to the source code
@@ -17,4 +18,12 @@ configure_file (
 # so that we will find ServerConfig.hpp
 include_directories("${PROJECT_BINARY_DIR}")
 
+# add library
+# add_library(Server server.cpp)
+
+# include_directories ("${PROJECT_SOURCE_DIR}/Server")
+# add_subdirectory (Server) 
+ 
+# add executable 
 add_executable(bin/BombermanServer main.cpp)
+# target_link_libraries (bin/BombermanServer Server)

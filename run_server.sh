@@ -10,4 +10,4 @@ printf "\n"
 
 cd ..
 
-server/bin/./BombermanServer
+server/bin/./BombermanServer 1234
