@@ -1,72 +1,196 @@
-// main.cpp
-
-#include <cstdio>
 #include <cstdlib>
-#include <ctime>
-#include <cstring>
+#include <cstdio>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <errno.h>
+#include <error.h>
+#include <netdb.h>
+#include <sys/epoll.h>
+#include <poll.h> 
+#include <thread>
+#include <unordered_set>
+#include <signal.h>
+#include <sstream>
+#include <string>
+
 #include "ServerConfig.hpp"
 
-int main(int argc, char ** argv) {
-    if(argc!=2){
-        printf("Usage: %s <port>\n", argv[0]);
-        return 1;
-    }
-    char * endp;
-    long port = strtol(argv[1], &endp, 10);
-    if(*endp || port > 65535 || port < 1){
-        printf("Usage: %s <port>\n", argv[0]);
-        return 1;
-    }
-    
-    sockaddr_in myAddr {};
-    myAddr.sin_family = AF_INET;
-    myAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    myAddr.sin_port = htons((uint16_t)port);
-    
-    int fd = socket(PF_INET, SOCK_STREAM, 0);
-    if(fd == -1){
-        perror("socket failed");
-        return 1;
-    }
-    
-    constexpr const int one = 1;
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
- 
-    int fail = bind(fd, (sockaddr*) &myAddr, sizeof(myAddr));
-    if(fail){
-        perror("bind failed");
-        return 1;
-    }
-    
-    fail = listen(fd, 1);
-    if(fail){
-        perror("listen failed");
-        return 1;
-    }
-    
-    while(true){
-        sockaddr_in clientAddr;
-        socklen_t clientAddrLen = sizeof(clientAddr);
-        int clientFd = accept(fd, (sockaddr*)&clientAddr, &clientAddrLen);
-        if(clientFd == -1){
-            perror("accept failed");
-            return 1;
-        }
-        
-        printf("Connection from %s:%hu\n", inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
+// server socket
+int listenSock;
 
-        auto currTime = std::time(nullptr);
-        char * text = std::ctime(&currTime);
-        
-        int count = write(clientFd, text, strlen(text));
-        if(count != (int) strlen(text))
-            perror("write failed");
-        
-        shutdown(clientFd, SHUT_RDWR);
-        close(clientFd);
+// client sockets
+std::unordered_set<int> clientFds;
+
+// handles SIGINT
+void ctrl_c(int);
+
+// sends data to clientFds
+void sendToAll(char * buffer, int count);
+
+// converts cstring to port
+uint16_t readPort(char * txt);
+
+// sets SO_REUSEADDR
+void setReuseAddr(int sock);
+
+//int to string
+std::string tostr (int x);
+
+
+
+int main(int argc, char ** argv){
+
+	// get and validate port number
+    char* port_num;
+	if(argc != 2) {
+        printf( "Run with default port %d\n\n", DEFAULT_PORT);
+        port_num = &tostr(DEFAULT_PORT)[0];
+    } else {
+		printf( "Run with port %s\n\n", argv[1]);
+        port_num = argv[1];    
+    }
+    auto port = readPort(port_num);
+	
+    // create socket
+    listenSock = socket(AF_INET, SOCK_STREAM, 0);
+    if(listenSock == -1) {
+		perror("socket failed");
+		exit(EXIT_FAILURE);
+	}
+	
+    // graceful ctrl+c exit
+    signal(SIGINT, ctrl_c);
+    // prevent dead sockets from throwing pipe errors on write
+    signal(SIGPIPE, SIG_IGN);
+
+    setReuseAddr(listenSock);
+
+    // bind to any address and port provided in arguments
+    sockaddr_in serverAddr{.sin_family=AF_INET, .sin_port=htons((short)port), .sin_addr={INADDR_ANY}};
+    int res = bind(listenSock, (sockaddr*) &serverAddr, sizeof(serverAddr));
+    if(res) { 
+		perror("bind failed");
+		exit(EXIT_FAILURE);
+	}
+
+    // enter listening mode
+    res = listen(listenSock, 1);
+    if(res) { 
+		perror("listen failed");
+		exit(EXIT_FAILURE);
+	}
+/****************************/
+
+    int epollFd =  epoll_create1(0);
+	if (epollFd == -1) {
+		perror("epoll_create1");
+		exit(EXIT_FAILURE);
+	}
+
+    epoll_event event, events[MAX_EVENTS];
+    event.events = EPOLLIN | EPOLLOUT;
+    event.data.fd = listenSock;
+
+    epoll_ctl(epollFd, EPOLL_CTL_ADD, listenSock, &event);
+
+
+    while(true){
+        int resultCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
+
+		for(int i = 0; i < resultCount; i++){
+
+			if( events[i].events == EPOLLIN && events[i].data.fd == listenSock ) {
+				// prepare placeholders for client address
+				sockaddr_in clientAddr{0};
+				socklen_t clientAddrSize = sizeof(clientAddr);
+
+				// accept new connection
+				auto clientFd = accept(listenSock, (sockaddr *) &clientAddr, &clientAddrSize);
+				if (clientFd == -1) {
+					perror("accept failed");
+				}
+				// setnonblocking(clientFd);
+                event.events = EPOLLIN | EPOLLET;
+				event.data.fd = clientFd;
+				if (epoll_ctl(epollFd, EPOLL_CTL_ADD, clientFd, &event) == -1) {
+					perror("epoll_ctl: clientFd");
+					exit(EXIT_FAILURE);
+				}
+
+				// add client to all clients set
+				clientFds.insert(clientFd);
+
+				// tell who has connected
+				printf("new connection from: %s:%hu (fd: %d)\n", inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port),
+						clientFd);
+
+			}
+
+			int clientFd = events[i].data.fd;
+
+			if( events[i].events == EPOLLIN) {
+				char buffer[255];
+				int count = read(clientFd, buffer, 255);
+				if (count > 0) {
+					printf(buffer);
+				}  
+			// } else if( events[i].events == EPOLLOUT) {
+				char buffer2[] = "Map\n";
+				int size = sizeof(buffer2);
+				sendToAll(buffer2, size);
+			}
+		}
+
+    }
+
+/****************************/
+}
+void removeClient(int clientFd){
+	printf("removing %d\n", clientFd);
+	clientFds.erase(clientFd);
+	close(clientFd);
+}
+
+uint16_t readPort(char * txt){
+    char * ptr;
+    auto port = strtol(txt, &ptr, 10);
+    if(*ptr!=0 || port<1 || (port>((1<<16)-1))) error(1,0,"illegal argument %s", txt);
+    return port;
+}
+
+void setReuseAddr(int sock){
+    const int one = 1;
+    int res = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+    if(res) error(1,errno, "setsockopt failed");
+}
+
+void ctrl_c(int){
+    for(int clientFd : clientFds)
+        removeClient(clientFd);
+    close(listenSock);
+    printf("Closing server\n");
+    exit(0);
+}
+
+void sendToAll(char * buffer, int count){
+    int res;
+    decltype(clientFds) bad;
+    for(int clientFd : clientFds){
+        res = write(clientFd, buffer, count);
+        if(res!=count)
+            bad.insert(clientFd);
+    }
+    for(int clientFd : bad){
+		removeClient(clientFd);
     }
 }
+
+std::string tostr (int x)
+	{
+	    std::stringstream str;
+	    str << x;
+	   return str.str();
+
+	}
