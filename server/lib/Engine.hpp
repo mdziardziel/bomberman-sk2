@@ -3,10 +3,13 @@
 
 #define MAX_PLAYERS 6
 
+#include <unordered_set>
+
 struct player {
-    char id;
-    char x;
-    char y;
+    int fd;
+    char* id;
+    char* x;
+    char* y;
 };
 
 char* generateWritableMap(char **, int x, int y, int boxes, int stones);
@@ -17,5 +20,6 @@ void resetMap(char **map, int x, int y);
 void handlePlayersMove(char **map, char move, char *data, char playerId, int x, int y);
 void addPlayerToMap(char **map, char playerId, int x, int y);
 void removePlayerFromMap(char **map, char playerId, int x, int y);
+// int addPlayer(std::unordered_set<player> players, int lastId, int clientFd, char **map, int x, int y);
 
 #endif

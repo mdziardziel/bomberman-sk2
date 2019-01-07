@@ -1,6 +1,27 @@
 #include "Engine.hpp"
 #include "Helpers.hpp"
 
+// int addPlayer(std::unordered_set<player> players, int lastId, int clientFd, char **map, int x, int y){
+//     player pl;
+//     pl.fd = clientFd;
+//     pl.id = toChar(++lastId);
+
+//     srand (time(NULL));
+//     while(true) {
+//         int tokenX, tokenY;
+//         tokenX = rand() % x;
+//         tokenY = rand() % y;
+//         if(map[tokenX][tokenY] == '_'){
+//             pl.x = toChar(tokenX);
+//             pl.y = toChar(tokenY);
+//         }
+//     }
+
+//     players.insert(pl);
+
+//     return lastId;
+// }
+
 void handlePlayersMove(char **map, char move, char *data, char playerId, int x, int y){
     char charX[2] = {data[0], data[1]};
     char charY[2] = {data[2], data[3]};
@@ -10,10 +31,12 @@ void handlePlayersMove(char **map, char move, char *data, char playerId, int x, 
     switch(move) {
         case 'o': // set bomb
             map[dataX][dataY] = 'o';
+            // TODO add explode time to some queue
             break;
         case 'w': //move to other place
-            removePlayerFromMap(map, playerId, x, y);
-            map[dataX][dataY] = playerId;
+            // TODO add new coords to players set
+            // removePlayerFromMap(map, playerId, x, y);
+            // map[dataX][dataY] = playerId;
             break;
     }
 }
@@ -81,4 +104,3 @@ void resetMap(char **map, int x, int y){
         }
     }      
 }
-

@@ -6,3 +6,4 @@
 #define X_FIELDS 10
 #define Y_FIELDS 10
 #define READ_BUFFER 10
+#define MAX_PLAYERS 8

@@ -4,7 +4,7 @@
 #include "Server.hpp"
 
 
-//move to server.hpp
+//TODO move to server.hpp
 void ctrl_c(int );
 //**********************
 
@@ -14,8 +14,10 @@ uint16_t port;
 std::unordered_set<int> clientFds;
 epoll_event event, events[MAX_EVENTS];
 
-//game variables
+//game
 char **map;
+// std::unordered_set<player> players;
+int lastId = 0;
 
 int main(int argc, char ** argv){
 	port = getPortNumber(DEFAULT_PORT, argc, argv);
@@ -35,11 +37,22 @@ int main(int argc, char ** argv){
 
     epoll_ctl(epollFd, EPOLL_CTL_ADD, listenSock, &event);
 
+	//game
 	map = new char *[X_FIELDS];
 	for (int i = 0; i < X_FIELDS; i++) map[i] = new char[Y_FIELDS];
 	generateMap(map,X_FIELDS,Y_FIELDS,10,4);
+
 	int parsedMapSize = X_FIELDS*Y_FIELDS;
 	char *parsedMap = new char[parsedMapSize];
+
+	// int parsedPlayersSize = MAX_PLAYERS*14;
+	// char *parsedPlayers = new char[parsedPlayersSize];
+
+	// TODO add new thread, which will count down the time and inform main thread if any bomb explode or the round will end
+	// TODO delete destroyed objects and players
+	// TODO count points
+	// TODO send final classification and start new round
+	// TDOD freeze round if is less than 2 players
 
     while(true){
         int resultCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
@@ -52,28 +65,32 @@ int main(int argc, char ** argv){
 
 				clientFds.insert(clientFd);
 
-				// addPlayerToMap(map, 'X', X_FIELDS,Y_FIELDS);
+				// lastId = addPlayer(players, lastId, clientFd, map, X_FIELDS, Y_FIELDS);
+				// TODO add player to set
 
+				//TODO parse players set to char* and send to all players
 				parsedMap = convertToOneDimension(map,X_FIELDS,Y_FIELDS);
 				sendToOne(parsedMap, parsedMapSize + 1, clientFd, clientFds);
-				
 				continue;
 			}
 
 			int clientFd = events[i].data.fd;
 
 			if( events[i].events == EPOLLIN) {
-				char buffer[5];
-				int count = read(clientFd, buffer, 255);
+				char buffer[READ_BUFFER];
+				int count = read(clientFd, buffer, READ_BUFFER);
 				if (count > 0) {
 					printf(buffer);
-					if (count > 4) {
+					if (count > 5) {
+						// TODO more flexible way to convert buffer to convert buffer to move and data
 						char move = buffer[0];
 						char data[4] = { buffer[1], buffer[2], buffer[3], buffer[4] };
-						// send map to all after move
+						
+
 						handlePlayersMove(map, move, data, toChar(clientFd%10)[0], X_FIELDS, Y_FIELDS);
 						parsedMap = convertToOneDimension(map,X_FIELDS,Y_FIELDS);
 						sendToAll(parsedMap, parsedMapSize + 1, clientFds);
+						//TODO parse players set to char* and send to all players
 					}
 				}  
 			}
@@ -84,7 +101,7 @@ int main(int argc, char ** argv){
 }
 
 
-//move to server.cpp
+//TODO move to server.cpp
 void ctrl_c(int ){
     for(int clientFd : clientFds)
         removeClient(clientFd, clientFds);
