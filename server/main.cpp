@@ -21,21 +21,21 @@ int lastId = 0;
 
 int main(int argc, char ** argv){
 	port = getPortNumber(DEFAULT_PORT, argc, argv);
-    listenSock = createSocket(AF_INET, SOCK_STREAM, 0);
+	listenSock = createSocket(AF_INET, SOCK_STREAM, 0);
 
-    signal(SIGINT, ctrl_c); 
-    signal(SIGPIPE, SIG_IGN);
-    setReuseAddr(listenSock);
+	signal(SIGINT, ctrl_c); 
+	signal(SIGPIPE, SIG_IGN);
+	setReuseAddr(listenSock);
 
 	bindToAddressAndPort(port, listenSock);
 	enterListeningMode(listenSock);
 	epollFd = createEpoll();
 
 
-    event.events = EPOLLIN | EPOLLOUT;
-    event.data.fd = listenSock;
+	event.events = EPOLLIN | EPOLLOUT;
+	event.data.fd = listenSock;
 
-    epoll_ctl(epollFd, EPOLL_CTL_ADD, listenSock, &event);
+	epoll_ctl(epollFd, EPOLL_CTL_ADD, listenSock, &event);
 
 	//game
 	map = new char *[X_FIELDS];
@@ -55,7 +55,7 @@ int main(int argc, char ** argv){
 	// TDOD freeze round if is less than 2 players
 
     while(true){
-        int resultCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
+		int resultCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
 
 		for(int i = 0; i < resultCount; i++){
 
@@ -85,13 +85,13 @@ int main(int argc, char ** argv){
 						// TODO more flexible way to convert buffer to convert buffer to move and data
 						char move = buffer[0];
 						char data[4] = { buffer[1], buffer[2], buffer[3], buffer[4] };
-						
+
 
 						handlePlayersMove(map, move, data, toChar(clientFd%10)[0], X_FIELDS, Y_FIELDS);
 						parsedMap = convertToOneDimension(map,X_FIELDS,Y_FIELDS);
 						sendToAll(parsedMap, parsedMapSize + 1, clientFds);
 						//TODO parse players set to char* and send to all players
-					}
+						}
 				}  
 			}
 
