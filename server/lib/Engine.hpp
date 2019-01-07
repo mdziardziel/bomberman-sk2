@@ -3,6 +3,12 @@
 
 #define MAX_PLAYERS 6
 
+struct player {
+    char id;
+    char x;
+    char y;
+};
+
 char* generateWritableMap(char **, int x, int y, int boxes, int stones);
 void generateMap(char **map, int x, int y, int boxes, int stones);
 char* convertToOneDimension(char **map, int x, int y);

@@ -1,9 +1,4 @@
-#include <stdlib.h>     /* srand, rand */
-#include <time.h>       /* time */
-#include <stdio.h>
-#include <sstream>
-#include <string>
-
+#include "Helpers.hpp"
 char * toChar(int x) {
 	std::stringstream str;
 	str << x;

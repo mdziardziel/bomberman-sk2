@@ -1,18 +1,12 @@
 #include "Engine.hpp"
 #include "Helpers.hpp"
 
-#include <stdlib.h>     /* srand, rand */
-#include <time.h>       /* time */
-#include <stdio.h>
-#include <sstream>
-#include <string>
-
 void handlePlayersMove(char **map, char move, char *data, char playerId, int x, int y){
     char charX[2] = {data[0], data[1]};
     char charY[2] = {data[2], data[3]};
     int dataX = toInt(charX);
     int dataY = toInt(charY);
-    printf("%d, %d\n", dataX, dataY);
+
     switch(move) {
         case 'o': // set bomb
             map[dataX][dataY] = 'o';
@@ -45,7 +39,6 @@ char* generateWritableMap(char ** map, int x, int y, int boxes, int stones){
 }
 
 void generateMap(char **map, int x, int y, int boxes, int stones){
-
     resetMap(map, x, y);
     if(boxes + stones >= x*y - MAX_PLAYERS*2){
         boxes = x+y;

@@ -5,3 +5,4 @@
 #define MAX_EVENTS 1
 #define X_FIELDS 10
 #define Y_FIELDS 10
+#define READ_BUFFER 10
