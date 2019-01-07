@@ -17,6 +17,7 @@
 
 #include "ServerConfig.hpp"
 #include "Engine.hpp"
+#include "Helpers.hpp"
 
 // server socket
 int listenSock;

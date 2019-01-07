@@ -12,9 +12,4 @@ void handlePlayersMove(char **map, char move, char *data, char playerId, int x, 
 void addPlayerToMap(char **map, char playerId, int x, int y);
 void removePlayerFromMap(char **map, char playerId, int x, int y);
 
-// move to math library
-
-char * toChar(int x);
-int toInt(char * number);
-
 #endif
