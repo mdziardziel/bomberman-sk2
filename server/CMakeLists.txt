@@ -18,12 +18,9 @@ configure_file (
 # so that we will find ServerConfig.hpp
 include_directories("${PROJECT_BINARY_DIR}")
 
-# add library
-# add_library(Server server.cpp)
-
-# include_directories ("${PROJECT_SOURCE_DIR}/Server")
-# add_subdirectory (Server) 
+include_directories ("${PROJECT_SOURCE_DIR}/Engine")
+add_subdirectory (Engine) 
  
 # add executable 
 add_executable(bin/BombermanServer main.cpp)
-# target_link_libraries (bin/BombermanServer Server)
+target_link_libraries (bin/BombermanServer Engine)

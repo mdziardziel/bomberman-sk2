@@ -16,6 +16,7 @@
 #include <string>
 
 #include "ServerConfig.hpp"
+#include "Engine.hpp"
 
 // server socket
 int listenSock;
@@ -46,7 +47,7 @@ int main(int argc, char ** argv){
     char* port_num;
 	if(argc != 2) {
         printf( "Run with default port %d\n\n", DEFAULT_PORT);
-        port_num = &tostr(DEFAULT_PORT)[0];
+        port_num = toChar(DEFAULT_PORT);
     } else {
 		printf( "Run with port %s\n\n", argv[1]);
         port_num = argv[1];    
@@ -95,6 +96,13 @@ int main(int argc, char ** argv){
 
     epoll_ctl(epollFd, EPOLL_CTL_ADD, listenSock, &event);
 
+	// map
+	char **map;
+	map = new char *[X_FIELDS];
+	for (int i = 0; i < X_FIELDS; i++) map[i] = new char[Y_FIELDS];
+	generateMap(map,X_FIELDS,Y_FIELDS,10,4);
+	int parsedMapSize = X_FIELDS*Y_FIELDS;
+	char *parsedMap = new char[parsedMapSize];
 
     while(true){
         int resultCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
@@ -126,27 +134,37 @@ int main(int argc, char ** argv){
 				printf("new connection from: %s:%hu (fd: %d)\n", inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port),
 						clientFd);
 
+				// send map with new player to all
+				addPlayerToMap(map, toChar(clientFd%10)[0], X_FIELDS,Y_FIELDS);
+				parsedMap = convertToOneDimension(map,X_FIELDS,Y_FIELDS);
+				sendToAll(parsedMap, parsedMapSize + 1);
 			}
 
 			int clientFd = events[i].data.fd;
 
 			if( events[i].events == EPOLLIN) {
-				char buffer[255];
+				char buffer[5];
 				int count = read(clientFd, buffer, 255);
 				if (count > 0) {
 					printf(buffer);
+					if (count > 4) {
+						char move = buffer[0];
+						char data[4] = { buffer[1], buffer[2], buffer[3], buffer[4] };
+						// send map to all after move
+						handlePlayersMove(map, move, data, toChar(clientFd%10)[0], X_FIELDS, Y_FIELDS);
+						parsedMap = convertToOneDimension(map,X_FIELDS,Y_FIELDS);
+						sendToAll(parsedMap, parsedMapSize + 1);
+					}
 				}  
-			// } else if( events[i].events == EPOLLOUT) {
-				char buffer2[] = "Map\n";
-				int size = sizeof(buffer2);
-				sendToAll(buffer2, size);
 			}
+
 		}
 
     }
 
 /****************************/
 }
+
 void removeClient(int clientFd){
 	printf("removing %d\n", clientFd);
 	clientFds.erase(clientFd);
@@ -179,6 +197,7 @@ void sendToAll(char * buffer, int count){
     decltype(clientFds) bad;
     for(int clientFd : clientFds){
         res = write(clientFd, buffer, count);
+		// printf("res: %d, count: %d\n", res, count);
         if(res!=count)
             bad.insert(clientFd);
     }
@@ -187,10 +206,7 @@ void sendToAll(char * buffer, int count){
     }
 }
 
-std::string tostr (int x)
-	{
-	    std::stringstream str;
-	    str << x;
-	   return str.str();
-
-	}
+void sendToOne(char * buffer, int count, int clientFd){
+    int res = write(clientFd, buffer, count);
+    if(res!=count) removeClient(clientFd);
+}
