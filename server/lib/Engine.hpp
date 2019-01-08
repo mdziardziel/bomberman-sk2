@@ -5,20 +5,9 @@
 
 #include <map>
 
-class Player {
-    int fd;
-    char* id;
-    // char* x;
-    // char* y;
-
-    public:
-
-    int getFd() { return fd; }
-    char* getId() {  return id; }
-    void setFd(int f) { fd = f; }
-    void setId(char * i) { id = i; }
-    // char* getX() { return x; }
-    // char* getY() { return y; }
+struct MapSize{
+    int x;
+    int y;
 };
 
 char* generateWritableMap(char **, int x, int y, int boxes, int stones);
@@ -30,6 +19,6 @@ void addPlayerToMap(char **map, char playerId, int x, int y);
 void removePlayerFromMap(char **map, char playerId, int x, int y);
 char * addPlayer(std::map < int, char* > players, int lastId, int clientFd);
 // char *findPlayerId(int clientFd, std::map < int, char* > players);
-void handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, char* > players, int x, int y);
+void handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, char* > players, MapSize *mapSize);
 
 #endif

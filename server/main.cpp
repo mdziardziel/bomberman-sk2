@@ -19,8 +19,14 @@ char **map;
 std::map < int, char* > players;
 int lastId = 0;
 bool gameStarted = false;
+MapSize *mapSize, ms;
 
 int main(int argc, char ** argv){
+	mapSize = &ms;
+
+	mapSize -> x = X_FIELDS;
+	mapSize -> y = Y_FIELDS;
+
 	port = getPortNumber(DEFAULT_PORT, argc, argv);
 	listenSock = createSocket(AF_INET, SOCK_STREAM, 0);
 
@@ -87,7 +93,8 @@ int main(int argc, char ** argv){
 				if (count > 0) {
 					// printf(buffer);
 
-					handlePlayersMsg(map, buffer, clientFd, players, X_FIELDS, Y_FIELDS);
+					handlePlayersMsg(map, buffer, clientFd, players, mapSize);
+
 					// parsedMap = convertToOneDimension(map,X_FIELDS,Y_FIELDS);
 					// sendToAll(parsedMap, parsedMapSize + 1, clientFds);
 					//TODO parse players set to char* and send to all players

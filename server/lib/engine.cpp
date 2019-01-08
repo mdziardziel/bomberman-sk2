@@ -22,34 +22,53 @@
 //     return lastId;
 // }
 
-void handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, char* > players, int x, int y){
+void handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, char* > players, MapSize *mapSize){
     char move = buffer[0];
     char *playerId = players[clientFd];
 
-    printf("%s\n", playerId);
-
-
     switch(move) {
         case 'B': // set bomb
-            // map[dataX][dataY] = 'o';
-            // TODO add explode time to some queue
+            if(sizeof(buffer) >= 5){
+                char x[2] = { buffer[1], buffer[2] };
+                char y[2] = { buffer[3], buffer[4] };
+                map[toInt(x)][toInt(y)] = 'o';
+            }
             break;
         case 'P': //move to other place
-            // TODO add new coords to players set
-            // removePlayerFromMap(map, playerId, x, y);
-            // map[dataX][dataY] = playerId;
+            if(sizeof(buffer) >= 5){
+                char x[2] = { buffer[1], buffer[2] };
+                char y[2] = { buffer[3], buffer[4] };
+                //send new position to all
+            }
             break;
-        case 'F': 
-
+        case 'F':  //set map size
+            if(sizeof(buffer) >= 5) {
+                char x[2] = { buffer[1], buffer[2] };
+                char y[2] = { buffer[3], buffer[4] };
+                mapSize -> x = toInt(x);
+                mapSize -> y = toInt(y);
+            }
             break;
-        case 'N': 
-
+        case 'N': //set name
+            if(sizeof(buffer) >= 3){
+                char len[2] = { buffer[1], buffer[2] };
+                int leng = toInt(len);
+                if(sizeof(buffer) >= leng + 3){
+                    char *name = new char[leng];
+                    for(int i = 0; i < leng; i++) name[i] = buffer[i+3];
+                    //send new players name to all
+                }
+            }
             break;
         case 'K': 
-
+            if(sizeof(buffer) >= 3){
+                char killerId[2] = { buffer[1], buffer[2] };
+                //add point to killerId
+                //send that playerId dies to all
+            }
             break;
         case 'G': 
-
+            //set game ready to actual playerId
             break;
     }
 }
