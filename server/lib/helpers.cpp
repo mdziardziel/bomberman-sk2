@@ -1,8 +1,9 @@
 #include "Helpers.hpp"
 char * toChar(int x) {
-	std::stringstream str;
-	str << x;
-	return &str.str()[0];
+    int len =  snprintf(nullptr, 0, "%d", x);
+    char * str = new char[len];
+    sprintf(str, "%d", x);
+	return str;
 }
 
 int toInt(char * number) {

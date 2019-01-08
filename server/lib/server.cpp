@@ -4,6 +4,7 @@
 void removeClient(int clientFd, std::unordered_set<int> clientFds){
 	printf("removing %d\n", clientFd);
 	clientFds.erase(clientFd);
+    //remove from players map too
 	close(clientFd);
 }
 

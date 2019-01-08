@@ -16,8 +16,9 @@ epoll_event event, events[MAX_EVENTS];
 
 //game
 char **map;
-// std::unordered_set<player> players;
+std::map < int, char* > players;
 int lastId = 0;
+bool gameStarted = false;
 
 int main(int argc, char ** argv){
 	port = getPortNumber(DEFAULT_PORT, argc, argv);
@@ -68,9 +69,13 @@ int main(int argc, char ** argv){
 				// lastId = addPlayer(players, lastId, clientFd, map, X_FIELDS, Y_FIELDS);
 				// TODO add player to set
 
-				//TODO parse players set to char* and send to all players
-				parsedMap = convertToOneDimension(map,X_FIELDS,Y_FIELDS);
-				sendToOne(parsedMap, parsedMapSize + 1, clientFd, clientFds);
+				players[clientFd] = toChar(++lastId);
+
+				if(gameStarted){
+					//TODO parse players set to char* and send to all players
+					parsedMap = convertToOneDimension(map,X_FIELDS,Y_FIELDS);
+					sendToOne(parsedMap, parsedMapSize + 1, clientFd, clientFds);
+				}
 				continue;
 			}
 
@@ -80,18 +85,12 @@ int main(int argc, char ** argv){
 				char buffer[READ_BUFFER];
 				int count = read(clientFd, buffer, READ_BUFFER);
 				if (count > 0) {
-					printf(buffer);
-					if (count > 5) {
-						// TODO more flexible way to convert buffer to convert buffer to move and data
-						char move = buffer[0];
-						char data[4] = { buffer[1], buffer[2], buffer[3], buffer[4] };
+					// printf(buffer);
 
-
-						handlePlayersMove(map, move, data, toChar(clientFd%10)[0], X_FIELDS, Y_FIELDS);
-						parsedMap = convertToOneDimension(map,X_FIELDS,Y_FIELDS);
-						sendToAll(parsedMap, parsedMapSize + 1, clientFds);
-						//TODO parse players set to char* and send to all players
-						}
+					handlePlayersMsg(map, buffer, clientFd, players, X_FIELDS, Y_FIELDS);
+					// parsedMap = convertToOneDimension(map,X_FIELDS,Y_FIELDS);
+					// sendToAll(parsedMap, parsedMapSize + 1, clientFds);
+					//TODO parse players set to char* and send to all players
 				}  
 			}
 
@@ -103,8 +102,10 @@ int main(int argc, char ** argv){
 
 //TODO move to server.cpp
 void ctrl_c(int ){
-    for(int clientFd : clientFds)
+    for(int clientFd : clientFds) {
         removeClient(clientFd, clientFds);
+		players.erase(clientFd);
+	}
     close(listenSock);
     printf("Closing server\n");
     exit(0);
