@@ -22,21 +22,37 @@
 //     return lastId;
 // }
 
-int handlePlayersMsg(std::unordered_set<int> readyToPlay, char *rawMessage,char **map, char *buffer, int clientFd, std::map<int, char*> players, MapSize *mapSize){
+HandleData handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, Player> players, MapSize *mapSize){
+    Player player = players[clientFd];
+    // printf("%s\n", players[clientFd].getId());
+
     char move = buffer[0];
     size_t sizeOfBuffer = strlen(buffer);
-    char *playerId = players[clientFd];
+
+    char *playerId = player.getId();
     switch(move) {
         case 'B': // set bomb
             if(sizeOfBuffer >= 5){
+                char *rawMessage = (char*)malloc(sizeof(char) * 8);
                 char x[2] = { buffer[1], buffer[2] };
                 char y[2] = { buffer[3], buffer[4] };
                 map[toInt(x)][toInt(y)] = 'o';
-                //send to everything bomb
+                rawMessage[0] = 'B';
+                rawMessage[1] = playerId[0];
+                rawMessage[2] = playerId[1];
+                rawMessage[3] = buffer[1];
+                rawMessage[4] = buffer[2];
+                rawMessage[5] = buffer[3];
+                rawMessage[6] = buffer[4];
+                rawMessage[7] = '\n';
+
+                HandleData hd(player, 7, rawMessage);
+                return hd;
             }
             break;
         case 'P': //move to other place
             if(sizeOfBuffer >= 5){
+                char *rawMessage = (char*)malloc(sizeof(char) * 8);
                 rawMessage[0] = 'P';
                 rawMessage[1] = playerId[0];
                 rawMessage[2] = playerId[1];
@@ -46,7 +62,8 @@ int handlePlayersMsg(std::unordered_set<int> readyToPlay, char *rawMessage,char 
                 rawMessage[6] = buffer[4];
                 rawMessage[7] = '\n';
                 
-                return 7;
+                HandleData hd(player, 7, rawMessage);
+                return hd;
             }
             break;
         case 'F':  //set map size
@@ -58,12 +75,13 @@ int handlePlayersMsg(std::unordered_set<int> readyToPlay, char *rawMessage,char 
             }
             break;
         case 'N': //set name
-
             if(sizeOfBuffer >= 3){
                 char len[2] = { buffer[1], buffer[2] };
                 int leng = toInt(len);
+                char *rawMessage = (char*)malloc(sizeof(char) * leng + 5);
                 if(sizeOfBuffer >= leng + 3){
                     char *name = new char[leng];
+                    // printf("22222222222222\n");
                     rawMessage[1] = playerId[0]; rawMessage[2] = playerId[1];
                     rawMessage[3] = buffer[1]; rawMessage[4] = buffer[2];
                     for(int i = 0; i < leng; i++) { 
@@ -72,14 +90,21 @@ int handlePlayersMsg(std::unordered_set<int> readyToPlay, char *rawMessage,char 
                     }
                     rawMessage[leng + 5] = '\n';
                     rawMessage[0] = 'N';
-                    return leng + 5;
+                    player.setName(name);
+                    
+                    printf("rng: %s %s\n",player.getId(), player.getName());
+
+                    HandleData hd(player, leng+5, rawMessage);
+                    return hd;
                 }
             }
             break;
         case 'K': 
             if(sizeOfBuffer >= 3){
+                char* rawMessage = (char*)malloc(sizeof(char) * 8);
                 char killerId[2] = { buffer[1], buffer[2] };
-                //add point to killerId
+                player = findPlayerById(players, killerId);
+                player.addPoint();
                 rawMessage[0] = 'P';
                 rawMessage[1] = playerId[0];
                 rawMessage[2] = playerId[1];
@@ -89,14 +114,26 @@ int handlePlayersMsg(std::unordered_set<int> readyToPlay, char *rawMessage,char 
                 rawMessage[6] = '1';
                 rawMessage[7] = '\n';
                
-                return 7;
+                HandleData hd(player, 7, rawMessage);
+                return hd;
             }
             break;
         case 'G': 
-            //set game ready to actual playerId
+            player.ready();
             break;
     }
-    return 0;
+
+    HandleData hd;
+    return hd;
+}
+
+Player findPlayerById(std::map<int, Player> players, char* id){
+    for(std::map<int, Player>::iterator player = players.begin(); player != players.end(); ++player){
+        char * playerId = player->second.getId();
+        if(playerId[0] == id[0] && playerId[1] == id[1]){
+             return player->second; 
+        }
+    }
 }
 
 // char *generatePlayersId(int newId){

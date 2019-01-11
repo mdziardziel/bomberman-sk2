@@ -16,13 +16,14 @@ epoll_event event, events[MAX_EVENTS];
 
 //game
 char **map;
-std::map < int, char* > players;
+std::map < int, Player> players;
 std::unordered_set<int> readyToPlay;
 int lastId = 9;
 bool gameStarted = false;
 MapSize *mapSize, ms;
 
 int main(int argc, char ** argv){
+	// std::map < int, Player> &players = *playersPointer;
 	mapSize = &ms;
 
 	mapSize -> x = X_FIELDS;
@@ -77,7 +78,12 @@ int main(int argc, char ** argv){
 				// TODO add player to set
 
 				// char *tmp = toChar(newId)
-				players[clientFd] = toChar(++lastId);
+				Player player(clientFd, toChar(++lastId));
+				// Player *plPoint = &player;
+				players[clientFd] = player;
+				// printf("main: %s %s\n",plPoint->getId(), plPoint->getName());
+
+				// players.insert(std::make_pair<int, Player>(clientFd, Player(toChar(++lastId))));
 
 				if(gameStarted){
 					//TODO parse players set to char* and send to all players
@@ -93,14 +99,19 @@ int main(int argc, char ** argv){
 				char buffer[READ_BUFFER];
 				int count = read(clientFd, buffer, READ_BUFFER);
 				if (count > 0) {
-					char rawMessage[WRITE_BUFFER];
-					int chars = handlePlayersMsg(readyToPlay, rawMessage, map, buffer, clientFd, players, mapSize);
+					// printf("mmm\n");
 
-											// // printf("%s ", rawMessage);
-											//                 // printf("%d \n", chars);
-											// 				printf("8: %s, %d\n", buffer, sizeof(buffer));
-					if(chars > 0){
-						sendToAll(rawMessage, chars + 1, clientFds);
+					HandleData hd = handlePlayersMsg(map, buffer, clientFd, players, mapSize);
+					Message msg = hd.message;
+					players[hd.player.getFd()] = hd.player;
+
+					Player player = players[clientFd];
+					// printf("main: %s %s\n",player.getId(), player.getName());
+					// printf("main: %s %d\n",msg.content, msg.length);
+
+					if(msg.length > 0){
+						sendToAll(msg.content, msg.length, clientFds);
+						free(msg.content);
 					}
 										// printf("%s \n", sta);
 					// if(sta[0] != '?') {
