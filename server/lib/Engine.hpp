@@ -4,6 +4,8 @@
 #define MAX_PLAYERS 6
 
 #include <map>
+#include <string.h>
+#include <unordered_set>
 
 struct MapSize{
     int x;
@@ -19,6 +21,8 @@ void addPlayerToMap(char **map, char playerId, int x, int y);
 void removePlayerFromMap(char **map, char playerId, int x, int y);
 char * addPlayer(std::map < int, char* > players, int lastId, int clientFd);
 // char *findPlayerId(int clientFd, std::map < int, char* > players);
-void handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, char* > players, MapSize *mapSize);
+// char* generatePlayersId(int newId);
+int handlePlayersMsg(std::unordered_set<int> readyToPlay, char *rawMessage,char **map, char *buffer, int clientFd, std::map<int, char*> players, MapSize *mapSize);
+
 
 #endif

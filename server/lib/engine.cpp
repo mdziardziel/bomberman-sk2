@@ -22,27 +22,35 @@
 //     return lastId;
 // }
 
-void handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, char* > players, MapSize *mapSize){
+int handlePlayersMsg(std::unordered_set<int> readyToPlay, char *rawMessage,char **map, char *buffer, int clientFd, std::map<int, char*> players, MapSize *mapSize){
     char move = buffer[0];
+    size_t sizeOfBuffer = strlen(buffer);
     char *playerId = players[clientFd];
-
     switch(move) {
         case 'B': // set bomb
-            if(sizeof(buffer) >= 5){
+            if(sizeOfBuffer >= 5){
                 char x[2] = { buffer[1], buffer[2] };
                 char y[2] = { buffer[3], buffer[4] };
                 map[toInt(x)][toInt(y)] = 'o';
+                //send to everything bomb
             }
             break;
         case 'P': //move to other place
-            if(sizeof(buffer) >= 5){
-                char x[2] = { buffer[1], buffer[2] };
-                char y[2] = { buffer[3], buffer[4] };
-                //send new position to all
+            if(sizeOfBuffer >= 5){
+                rawMessage[0] = 'P';
+                rawMessage[1] = playerId[0];
+                rawMessage[2] = playerId[1];
+                rawMessage[3] = buffer[1];
+                rawMessage[4] = buffer[2];
+                rawMessage[5] = buffer[3];
+                rawMessage[6] = buffer[4];
+                rawMessage[7] = '\n';
+                
+                return 7;
             }
             break;
         case 'F':  //set map size
-            if(sizeof(buffer) >= 5) {
+            if(sizeOfBuffer >= 5) {
                 char x[2] = { buffer[1], buffer[2] };
                 char y[2] = { buffer[3], buffer[4] };
                 mapSize -> x = toInt(x);
@@ -50,28 +58,58 @@ void handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, ch
             }
             break;
         case 'N': //set name
-            if(sizeof(buffer) >= 3){
+
+            if(sizeOfBuffer >= 3){
                 char len[2] = { buffer[1], buffer[2] };
                 int leng = toInt(len);
-                if(sizeof(buffer) >= leng + 3){
+                if(sizeOfBuffer >= leng + 3){
                     char *name = new char[leng];
-                    for(int i = 0; i < leng; i++) name[i] = buffer[i+3];
-                    //send new players name to all
+                    rawMessage[1] = playerId[0]; rawMessage[2] = playerId[1];
+                    rawMessage[3] = buffer[1]; rawMessage[4] = buffer[2];
+                    for(int i = 0; i < leng; i++) { 
+                        name[i] = buffer[i+3];
+                        rawMessage[i+5] = buffer[i+3];
+                    }
+                    rawMessage[leng + 5] = '\n';
+                    rawMessage[0] = 'N';
+                    return leng + 5;
                 }
             }
             break;
         case 'K': 
-            if(sizeof(buffer) >= 3){
+            if(sizeOfBuffer >= 3){
                 char killerId[2] = { buffer[1], buffer[2] };
                 //add point to killerId
-                //send that playerId dies to all
+                rawMessage[0] = 'P';
+                rawMessage[1] = playerId[0];
+                rawMessage[2] = playerId[1];
+                rawMessage[3] = '-';
+                rawMessage[4] = '1';
+                rawMessage[5] = '-';
+                rawMessage[6] = '1';
+                rawMessage[7] = '\n';
+               
+                return 7;
             }
             break;
         case 'G': 
             //set game ready to actual playerId
             break;
     }
+    return 0;
 }
+
+// char *generatePlayersId(int newId){
+//     if(newId < 10 ){
+//         char pi[2];
+//         pi[0] = '0';
+//         pi[1] = toChar(newId)[0];
+
+//         // printf("%s %s %d %s \n", pi, toChar(newId), sizeof(pi), result);
+//         return pi;
+//     }
+//     return toChar(newId);
+// }
 
 // char * addPlayer(std::map < int, char* > players, int lastId, int clientFd){
 //     players[clientFd] = toChar(lastId);

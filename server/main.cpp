@@ -17,7 +17,8 @@ epoll_event event, events[MAX_EVENTS];
 //game
 char **map;
 std::map < int, char* > players;
-int lastId = 0;
+std::unordered_set<int> readyToPlay;
+int lastId = 9;
 bool gameStarted = false;
 MapSize *mapSize, ms;
 
@@ -75,6 +76,7 @@ int main(int argc, char ** argv){
 				// lastId = addPlayer(players, lastId, clientFd, map, X_FIELDS, Y_FIELDS);
 				// TODO add player to set
 
+				// char *tmp = toChar(newId)
 				players[clientFd] = toChar(++lastId);
 
 				if(gameStarted){
@@ -91,9 +93,19 @@ int main(int argc, char ** argv){
 				char buffer[READ_BUFFER];
 				int count = read(clientFd, buffer, READ_BUFFER);
 				if (count > 0) {
-					// printf(buffer);
+					char rawMessage[WRITE_BUFFER];
+					int chars = handlePlayersMsg(readyToPlay, rawMessage, map, buffer, clientFd, players, mapSize);
 
-					handlePlayersMsg(map, buffer, clientFd, players, mapSize);
+											// // printf("%s ", rawMessage);
+											//                 // printf("%d \n", chars);
+											// 				printf("8: %s, %d\n", buffer, sizeof(buffer));
+					if(chars > 0){
+						sendToAll(rawMessage, chars + 1, clientFds);
+					}
+										// printf("%s \n", sta);
+					// if(sta[0] != '?') {
+					// 	sendToAll(sta, sizeof(sta) + 1, clientFds);
+					// }
 
 					// parsedMap = convertToOneDimension(map,X_FIELDS,Y_FIELDS);
 					// sendToAll(parsedMap, parsedMapSize + 1, clientFds);
