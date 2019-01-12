@@ -1,10 +1,9 @@
 #include "Server.hpp"
 #include "Helpers.hpp"
 
-void removeClient(int clientFd, std::unordered_set<int> clientFds){
+void removeClient(int clientFd, std::map<int, Player> players){
 	printf("removing %d\n", clientFd);
-	clientFds.erase(clientFd);
-    //remove from players map too
+	players.erase(clientFd);
 	close(clientFd);
 }
 
@@ -21,22 +20,23 @@ void setReuseAddr(int sock){
     if(res) error(1,errno, "setsockopt failed");
 }
 
-void sendToAll(char * buffer, int count, std::unordered_set<int> clientFds){
+void sendToAll(char * buffer, int count, std::map<int, Player> players){
     int res;
-    decltype(clientFds) bad;
-    for(int clientFd : clientFds){
+    std::unordered_set<int> bad;
+    for(std::map<int, Player>::iterator player = players.begin(); player != players.end(); ++player){
+        int clientFd = player->first;
         res = write(clientFd, buffer, count);
         if(res!=count)
             bad.insert(clientFd);
     }
     for(int clientFd : bad){
-		removeClient(clientFd, clientFds);
+		removeClient(clientFd, players);
     }
 }
 
-void sendToOne(char * buffer, int count, int clientFd, std::unordered_set<int> clientFds){
+void sendToOne(char * buffer, int count, int clientFd, std::map<int, Player> players){
     int res = write(clientFd, buffer, count);
-    if(res!=count) removeClient(clientFd, clientFds);
+    if(res!=count) removeClient(clientFd, players);
 }
 
 uint16_t getPortNumber(int defaultPort, int argc, char **argv){

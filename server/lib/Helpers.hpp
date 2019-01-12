@@ -6,8 +6,10 @@
 #include <stdio.h>
 #include <sstream>
 #include <string>
+#include <string.h>
 
 char * toChar(int x);
 int toInt(char * number);
+char* toChar2(int x);
 
 #endif

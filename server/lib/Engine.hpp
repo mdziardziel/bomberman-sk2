@@ -6,6 +6,8 @@
 #include <map>
 #include <string.h>
 #include <unordered_set>
+#include <list>
+#include "Helpers.hpp"
 
 struct MapSize{
     int x;
@@ -32,9 +34,9 @@ class Player{
 
     char* id;
     int points;
-    char* x;
-    char* y;
-    bool readyToPlay;
+    int x;
+    int y;
+    int readyToPlay;
     char* name;
     int fd;
 
@@ -44,15 +46,27 @@ class Player{
         fd = f;
         id = newId;
         points = 0;
-        readyToPlay = false;
+        readyToPlay = 0;
+        x = -1;
+        y = -1;
     }
     Player(){points = 0; readyToPlay = false;}
 
     int getFd(){return fd;}
 
+    char* getX(){
+        return toChar2(x);
+    }
+    char* getY(){
+        return toChar2(y);
+    }
+    int getPoints(){return points;}
+
     // void setFd(int f){fd = f;}
 
     int addPoint(){return ++points;}
+
+    int isReady(){ return readyToPlay; }
 
     char* getId(){
         char* nc = new char[2];
@@ -60,12 +74,17 @@ class Player{
         nc[1] = 'w';
         return id;
         }
-    void ready(){readyToPlay = true;}
+    void ready(){readyToPlay = 1;}
     char* getName(){return name;}
 
     void setName(char* n){
         name = n;
     }
+    void setX(char *xx){x = toInt(xx);}
+    void setY(char *yy){ y = toInt(yy);}
+    void setX(int xx){x = xx;}
+    void setY(int yy){ y = yy;}
+
 };
 
 struct HandleData {
@@ -93,7 +112,7 @@ void removePlayerFromMap(char **map, char playerId, int x, int y);
 char * addPlayer(std::map < int, char* > players, int lastId, int clientFd);
 // char *findPlayerId(int clientFd, std::map < int, char* > players);
 // char* generatePlayersId(int newId);
-HandleData handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, Player> players, MapSize *mapSize);
+std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, Player> players, MapSize *mapSize);
 Player findPlayerById(std::map<int, Player> players, char* id);
 
 

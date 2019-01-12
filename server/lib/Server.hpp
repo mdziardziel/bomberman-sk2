@@ -17,13 +17,15 @@
 #include <signal.h>
 #include <sstream>
 #include <string>
+#include <map>
+#include "Engine.hpp"
 
 void removeClient(int clientFd, std::unordered_set<int> clientFds);
 uint16_t readPort(char * txt);
 void setReuseAddr(int sock);
 // void ctrl_c(int );
-void sendToAll(char * buffer, int count, std::unordered_set<int> clientFds);
-void sendToOne(char * buffer, int count, int clientFd, std::unordered_set<int> clientFds);
+void sendToAll(char * buffer, int count, std::map<int, Player> players);
+void sendToOne(char * buffer, int count, int clientFd, std::map<int, Player> players);
 
 uint16_t getPortNumber(int defaultPort,int argc, char **argv);
 int createSocket(int ai, int ss, int flag);

@@ -11,19 +11,16 @@ void ctrl_c(int );
 //server variable
 int listenSock, epollFd;
 uint16_t port;
-std::unordered_set<int> clientFds;
 epoll_event event, events[MAX_EVENTS];
 
 //game
 char **map;
 std::map < int, Player> players;
-std::unordered_set<int> readyToPlay;
 int lastId = 9;
 bool gameStarted = false;
 MapSize *mapSize, ms;
 
 int main(int argc, char ** argv){
-	// std::map < int, Player> &players = *playersPointer;
 	mapSize = &ms;
 
 	mapSize -> x = X_FIELDS;
@@ -72,23 +69,12 @@ int main(int argc, char ** argv){
 				int clientFd = connectNewClient(event, listenSock, epollFd);
 				if(clientFd == -1) continue;
 
-				clientFds.insert(clientFd);
-
-				// lastId = addPlayer(players, lastId, clientFd, map, X_FIELDS, Y_FIELDS);
-				// TODO add player to set
-
-				// char *tmp = toChar(newId)
 				Player player(clientFd, toChar(++lastId));
-				// Player *plPoint = &player;
 				players[clientFd] = player;
-				// printf("main: %s %s\n",plPoint->getId(), plPoint->getName());
-
-				// players.insert(std::make_pair<int, Player>(clientFd, Player(toChar(++lastId))));
 
 				if(gameStarted){
-					//TODO parse players set to char* and send to all players
 					parsedMap = convertToOneDimension(map,X_FIELDS,Y_FIELDS);
-					sendToOne(parsedMap, parsedMapSize + 1, clientFd, clientFds);
+					sendToOne(parsedMap, parsedMapSize + 1, clientFd, players);
 				}
 				continue;
 			}
@@ -99,28 +85,22 @@ int main(int argc, char ** argv){
 				char buffer[READ_BUFFER];
 				int count = read(clientFd, buffer, READ_BUFFER);
 				if (count > 0) {
-					// printf("mmm\n");
 
-					HandleData hd = handlePlayersMsg(map, buffer, clientFd, players, mapSize);
-					Message msg = hd.message;
-					players[hd.player.getFd()] = hd.player;
+					std::list<HandleData> hdList = handlePlayersMsg(map, buffer, clientFd, players, mapSize);
+					for (std::list<HandleData>::iterator hd = hdList.begin(); hd != hdList.end(); ++hd){
+					
+						Message msg = hd->message;
+						players[hd->player.getFd()] = hd->player;
 
-					Player player = players[clientFd];
-					// printf("main: %s %s\n",player.getId(), player.getName());
-					// printf("main: %s %d\n",msg.content, msg.length);
+						Player player = players[clientFd];
 
-					if(msg.length > 0){
-						sendToAll(msg.content, msg.length, clientFds);
-						free(msg.content);
+						printf("fd: %d, name: %s, points %d, ready: %d, x: %s, y: %s\n", 
+								player.getFd(), player.getName(), player.getPoints(), player.isReady(), player.getX(), player.getY());
+						if(msg.length > 0){
+							sendToAll(msg.content, msg.length, players);
+							free(msg.content);
+						}
 					}
-										// printf("%s \n", sta);
-					// if(sta[0] != '?') {
-					// 	sendToAll(sta, sizeof(sta) + 1, clientFds);
-					// }
-
-					// parsedMap = convertToOneDimension(map,X_FIELDS,Y_FIELDS);
-					// sendToAll(parsedMap, parsedMapSize + 1, clientFds);
-					//TODO parse players set to char* and send to all players
 				}  
 			}
 
@@ -132,10 +112,11 @@ int main(int argc, char ** argv){
 
 //TODO move to server.cpp
 void ctrl_c(int ){
-    for(int clientFd : clientFds) {
-        removeClient(clientFd, clientFds);
-		players.erase(clientFd);
-	}
+	for(std::map<int, Player>::iterator player = players.begin(); player != players.end(); ++player){
+		printf("removing %d\n", player->first);
+		close(player->first);
+		players.erase(player->first);
+    }
     close(listenSock);
     printf("Closing server\n");
     exit(0);

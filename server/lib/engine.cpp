@@ -22,7 +22,8 @@
 //     return lastId;
 // }
 
-HandleData handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, Player> players, MapSize *mapSize){
+std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, Player> players, MapSize *mapSize){
+    std::list<HandleData> hdList;
     Player player = players[clientFd];
     // printf("%s\n", players[clientFd].getId());
 
@@ -33,10 +34,17 @@ HandleData handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < i
     switch(move) {
         case 'B': // set bomb
             if(sizeOfBuffer >= 5){
+                // printf("11111\n");
                 char *rawMessage = (char*)malloc(sizeof(char) * 8);
+                // printf("222222\n");
                 char x[2] = { buffer[1], buffer[2] };
                 char y[2] = { buffer[3], buffer[4] };
+                int xI = toInt(x);
+                int yI = toInt(y);
+                if(xI >= mapSize->x || yI >= mapSize->y) return hdList;
+                // printf("33333  %d %d\n");
                 map[toInt(x)][toInt(y)] = 'o';
+                // printf("444444\n");
                 rawMessage[0] = 'B';
                 rawMessage[1] = playerId[0];
                 rawMessage[2] = playerId[1];
@@ -45,9 +53,12 @@ HandleData handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < i
                 rawMessage[5] = buffer[3];
                 rawMessage[6] = buffer[4];
                 rawMessage[7] = '\n';
+                // printf("555555\n");
+                player.setX(x);
+                player.setY(y);
 
                 HandleData hd(player, 7, rawMessage);
-                return hd;
+                hdList.push_back(hd);
             }
             break;
         case 'P': //move to other place
@@ -61,17 +72,24 @@ HandleData handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < i
                 rawMessage[5] = buffer[3];
                 rawMessage[6] = buffer[4];
                 rawMessage[7] = '\n';
+                char x[2] = { buffer[1], buffer[2] };
+                char y[2] = { buffer[3], buffer[4] };
+                player.setX(x);
+                player.setY(y);
                 
                 HandleData hd(player, 7, rawMessage);
-                return hd;
+                hdList.push_back(hd);
             }
             break;
         case 'F':  //set map size
             if(sizeOfBuffer >= 5) {
+                // printf("%s\n", buffer);
                 char x[2] = { buffer[1], buffer[2] };
                 char y[2] = { buffer[3], buffer[4] };
-                mapSize -> x = toInt(x);
-                mapSize -> y = toInt(y);
+                // printf("%d %d\n", toInt(x), toInt(y));
+                mapSize->x = toInt(x);
+                mapSize->y = toInt(y);
+                printf("%d %d\n", mapSize->x, mapSize->y);
             }
             break;
         case 'N': //set name
@@ -92,19 +110,16 @@ HandleData handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < i
                     rawMessage[0] = 'N';
                     player.setName(name);
                     
-                    printf("rng: %s %s\n",player.getId(), player.getName());
+                    // printf("rng: %s %s\n",player.getId(), player.getName());
 
                     HandleData hd(player, leng+5, rawMessage);
-                    return hd;
+                    hdList.push_back(hd);
                 }
             }
             break;
         case 'K': 
             if(sizeOfBuffer >= 3){
                 char* rawMessage = (char*)malloc(sizeof(char) * 8);
-                char killerId[2] = { buffer[1], buffer[2] };
-                player = findPlayerById(players, killerId);
-                player.addPoint();
                 rawMessage[0] = 'P';
                 rawMessage[1] = playerId[0];
                 rawMessage[2] = playerId[1];
@@ -113,18 +128,26 @@ HandleData handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < i
                 rawMessage[5] = '-';
                 rawMessage[6] = '1';
                 rawMessage[7] = '\n';
+                player.setX(-1);
+                player.setY(-1);
                
                 HandleData hd(player, 7, rawMessage);
-                return hd;
+                hdList.push_back(hd);
+
+                char killerId[2] = { buffer[1], buffer[2] };
+                Player killer = findPlayerById(players, killerId);
+                killer.addPoint();
+                HandleData hd2(killer, 0, rawMessage);
+                hdList.push_back(hd2);
             }
             break;
         case 'G': 
             player.ready();
+            printf("ready: %d", player.isReady());
             break;
     }
 
-    HandleData hd;
-    return hd;
+    return hdList;
 }
 
 Player findPlayerById(std::map<int, Player> players, char* id){
