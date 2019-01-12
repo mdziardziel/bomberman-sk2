@@ -1,10 +1,11 @@
-#include "Server.hpp"
+#include "Server.hpp" 
 #include "Helpers.hpp"
 
-void removeClient(int clientFd, std::map<int, Player> players){
+std::map<int, Player> removeClient(int clientFd, std::map<int, Player> players){
 	printf("removing %d\n", clientFd);
 	players.erase(clientFd);
 	close(clientFd);
+    return players;
 }
 
 uint16_t readPort(char * txt){
@@ -20,23 +21,33 @@ void setReuseAddr(int sock){
     if(res) error(1,errno, "setsockopt failed");
 }
 
-void sendToAll(char * buffer, int count, std::map<int, Player> players){
+std::map<int, Player> sendToAll(char * buffer, int count, std::map<int, Player> players){
     int res;
     std::unordered_set<int> bad;
     for(std::map<int, Player>::iterator player = players.begin(); player != players.end(); ++player){
         int clientFd = player->first;
+        printf("client fd %d\n", clientFd);
         res = write(clientFd, buffer, count);
+        printf("res %d count %d\n", res, count);
         if(res!=count)
             bad.insert(clientFd);
     }
     for(int clientFd : bad){
-		removeClient(clientFd, players);
+		players = removeClient(clientFd, players);
     }
+
+    return players;
 }
 
-void sendToOne(char * buffer, int count, int clientFd, std::map<int, Player> players){
+std::map<int, Player> checkConnections(std::map<int, Player> players){
+    char message[2] = {'C', '\n'};
+    return sendToAll(message, 2, players);
+}
+
+std::map<int, Player> sendToOne(char * buffer, int count, int clientFd, std::map<int, Player> players){
     int res = write(clientFd, buffer, count);
-    if(res!=count) removeClient(clientFd, players);
+    if(res!=count) players = removeClient(clientFd, players);
+    return players;
 }
 
 uint16_t getPortNumber(int defaultPort, int argc, char **argv){

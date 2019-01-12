@@ -9,9 +9,10 @@
 #include <list>
 #include "Helpers.hpp"
 
-struct MapSize{
-    int x;
-    int y;
+struct GameSettings{
+    int mapX;
+    int mapY;
+    int started;
 };
 
 struct Message {
@@ -107,13 +108,14 @@ void generateMap(char **map, int x, int y, int boxes, int stones);
 char* convertToOneDimension(char **map, int x, int y);
 void insertObjects(char **map, char token, int number, int x, int y);
 void resetMap(char **map, int x, int y);
-void addPlayerToMap(char **map, char playerId, int x, int y);
-void removePlayerFromMap(char **map, char playerId, int x, int y);
+// void addPlayerToMap(char **map, char playerId, int x, int y);
+// void removePlayerFromMap(char **map, char playerId, int x, int y);
 char * addPlayer(std::map < int, char* > players, int lastId, int clientFd);
 // char *findPlayerId(int clientFd, std::map < int, char* > players);
 // char* generatePlayersId(int newId);
-std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, Player> players, MapSize *mapSize);
+std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, Player> players, GameSettings *gameSettings);
 Player findPlayerById(std::map<int, Player> players, char* id);
+int isEveryoneReady(std::map < int, Player> players, char **map, GameSettings *gameSettings);
 
 
 #endif

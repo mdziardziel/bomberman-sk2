@@ -11,5 +11,6 @@
 char * toChar(int x);
 int toInt(char * number);
 char* toChar2(int x);
+char* toChar3(int x);
 
 #endif

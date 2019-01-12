@@ -18,13 +18,13 @@ char **map;
 std::map < int, Player> players;
 int lastId = 9;
 bool gameStarted = false;
-MapSize *mapSize, ms;
+GameSettings *gameSettings, gs;
 
 int main(int argc, char ** argv){
-	mapSize = &ms;
+	gameSettings = &gs;
 
-	mapSize -> x = X_FIELDS;
-	mapSize -> y = Y_FIELDS;
+	gameSettings -> mapX = X_FIELDS;
+	gameSettings -> mapY = Y_FIELDS;
 
 	port = getPortNumber(DEFAULT_PORT, argc, argv);
 	listenSock = createSocket(AF_INET, SOCK_STREAM, 0);
@@ -48,8 +48,8 @@ int main(int argc, char ** argv){
 	for (int i = 0; i < X_FIELDS; i++) map[i] = new char[Y_FIELDS];
 	generateMap(map,X_FIELDS,Y_FIELDS,10,4);
 
-	int parsedMapSize = X_FIELDS*Y_FIELDS;
-	char *parsedMap = new char[parsedMapSize];
+	// int parsedMapSize = X_FIELDS*Y_FIELDS;
+	// char *parsedMap = new char[parsedMapSize];
 
 	// int parsedPlayersSize = MAX_PLAYERS*14;
 	// char *parsedPlayers = new char[parsedPlayersSize];
@@ -72,9 +72,9 @@ int main(int argc, char ** argv){
 				Player player(clientFd, toChar(++lastId));
 				players[clientFd] = player;
 
-				if(gameStarted){
-					parsedMap = convertToOneDimension(map,X_FIELDS,Y_FIELDS);
-					sendToOne(parsedMap, parsedMapSize + 1, clientFd, players);
+				if(gameSettings->started){
+					char *parsedMap = convertToOneDimension(map, gameSettings->mapX,gameSettings->mapY);
+					players = sendToOne(parsedMap, sizeof(parsedMap), clientFd, players);
 				}
 				continue;
 			}
@@ -86,7 +86,7 @@ int main(int argc, char ** argv){
 				int count = read(clientFd, buffer, READ_BUFFER);
 				if (count > 0) {
 
-					std::list<HandleData> hdList = handlePlayersMsg(map, buffer, clientFd, players, mapSize);
+					std::list<HandleData> hdList = handlePlayersMsg(map, buffer, clientFd, players, gameSettings);
 					for (std::list<HandleData>::iterator hd = hdList.begin(); hd != hdList.end(); ++hd){
 					
 						Message msg = hd->message;
@@ -97,7 +97,7 @@ int main(int argc, char ** argv){
 						printf("fd: %d, name: %s, points %d, ready: %d, x: %s, y: %s\n", 
 								player.getFd(), player.getName(), player.getPoints(), player.isReady(), player.getX(), player.getY());
 						if(msg.length > 0){
-							sendToAll(msg.content, msg.length, players);
+							players = sendToAll(msg.content, msg.length, players);
 							free(msg.content);
 						}
 					}

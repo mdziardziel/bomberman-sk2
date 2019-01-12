@@ -1,5 +1,6 @@
 #include "Engine.hpp"
 #include "Helpers.hpp"
+#include "Server.hpp"
 
 // int addPlayer(std::list<player> players, int lastId, int clientFd, char **map, int x, int y){
 //     player pl;
@@ -22,7 +23,7 @@
 //     return lastId;
 // }
 
-std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, Player> players, MapSize *mapSize){
+std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, Player> players, GameSettings *gameSettings){
     std::list<HandleData> hdList;
     Player player = players[clientFd];
     // printf("%s\n", players[clientFd].getId());
@@ -41,7 +42,7 @@ std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, s
                 char y[2] = { buffer[3], buffer[4] };
                 int xI = toInt(x);
                 int yI = toInt(y);
-                if(xI >= mapSize->x || yI >= mapSize->y) return hdList;
+                if(xI >= gameSettings->mapX || yI >= gameSettings->mapY) return hdList;
                 // printf("33333  %d %d\n");
                 map[toInt(x)][toInt(y)] = 'o';
                 // printf("444444\n");
@@ -57,7 +58,7 @@ std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, s
                 player.setX(x);
                 player.setY(y);
 
-                HandleData hd(player, 7, rawMessage);
+                HandleData hd(player, 8, rawMessage);
                 hdList.push_back(hd);
             }
             break;
@@ -77,7 +78,7 @@ std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, s
                 player.setX(x);
                 player.setY(y);
                 
-                HandleData hd(player, 7, rawMessage);
+                HandleData hd(player, 8, rawMessage);
                 hdList.push_back(hd);
             }
             break;
@@ -87,9 +88,9 @@ std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, s
                 char x[2] = { buffer[1], buffer[2] };
                 char y[2] = { buffer[3], buffer[4] };
                 // printf("%d %d\n", toInt(x), toInt(y));
-                mapSize->x = toInt(x);
-                mapSize->y = toInt(y);
-                printf("%d %d\n", mapSize->x, mapSize->y);
+                gameSettings->mapX = toInt(x);
+                gameSettings->mapY = toInt(y);
+                printf("%d %d\n", gameSettings->mapX, gameSettings->mapY);
             }
             break;
         case 'N': //set name
@@ -131,24 +132,56 @@ std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, s
                 player.setX(-1);
                 player.setY(-1);
                
-                HandleData hd(player, 7, rawMessage);
+                HandleData hd(player, 8, rawMessage);
                 hdList.push_back(hd);
 
                 char killerId[2] = { buffer[1], buffer[2] };
                 Player killer = findPlayerById(players, killerId);
                 killer.addPoint();
-                HandleData hd2(killer, 0, rawMessage);
+
+                char *pts = toChar3(killer.getPoints());
+                char* rawMessage2 = (char*)malloc(sizeof(char) * 7);
+                rawMessage2[0] = 'A';
+                rawMessage2[1] = killerId[0];
+                rawMessage2[2] = killerId[1];
+                rawMessage2[3] = pts[0];
+                rawMessage2[4] = pts[1];
+                rawMessage2[5] = pts[2];
+                rawMessage2[6] = '\n';
+
+                HandleData hd2(killer, 7, rawMessage2);
                 hdList.push_back(hd2);
             }
             break;
         case 'G': 
             player.ready();
-            printf("ready: %d", player.isReady());
+            players[clientFd].ready();
+            printf("ready: %d\n", player.isReady());
+            players = checkConnections(players); // sent control message to check if everyone is still connected
+            if(isEveryoneReady(players, map, gameSettings)){           
+                char* rawMessage = (char*)malloc(sizeof(char) * 2);
+                rawMessage[0] = 'S';
+                rawMessage[1] = '\n';
+                HandleData hd2(player, 2, rawMessage);
+                hdList.push_back(hd2);
+            }
             break;
     }
 
     return hdList;
 }
+
+
+int isEveryoneReady(std::map < int, Player> players, char **map, GameSettings *gameSettings){
+    for(std::map<int, Player>::iterator player = players.begin(); player != players.end(); ++player){
+        printf("%s\n", player->second.getName());
+        if(!player->second.isReady()) return 0;
+    }
+
+    generateMap(map, gameSettings->mapX, gameSettings->mapY, 6, 4);
+    return 1;
+}
+
 
 Player findPlayerById(std::map<int, Player> players, char* id){
     for(std::map<int, Player>::iterator player = players.begin(); player != players.end(); ++player){
@@ -185,20 +218,20 @@ Player findPlayerById(std::map<int, Player> players, char* id){
 //     return new char[1];
 // }
 
-void removePlayerFromMap(char **map, char playerId, int x, int y){
-    for (int i = 0; i < x; i++){
-        for (int j = 0; j < y; j++) {
-            if(map[i][j] == playerId) {
-                map[i][j] = '_';
-                return;
-            }
-        }
-    } 
-}
+// void removePlayerFromMap(char **map, char playerId, int x, int y){
+//     for (int i = 0; i < x; i++){
+//         for (int j = 0; j < y; j++) {
+//             if(map[i][j] == playerId) {
+//                 map[i][j] = '_';
+//                 return;
+//             }
+//         }
+//     } 
+// }
 
-void addPlayerToMap(char **map, char playerId, int x, int y){
-    insertObjects(map, playerId, 1, x, y);
-}
+// void addPlayerToMap(char **map, char playerId, int x, int y){
+//     insertObjects(map, playerId, 1, x, y);
+// }
 
 char* generateWritableMap(char ** map, int x, int y, int boxes, int stones){
     generateMap(map, x, y, boxes, stones);
