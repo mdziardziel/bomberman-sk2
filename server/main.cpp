@@ -2,6 +2,7 @@
 #include "Engine.hpp"
 #include "Helpers.hpp"
 #include "Server.hpp"
+#include <thread>
 
 
 //TODO move to server.hpp
@@ -16,9 +17,14 @@ epoll_event event, events[MAX_EVENTS];
 //game
 char **map;
 std::map < int, Player> players;
-int lastId = 9;
+int lastId = -1;
 bool gameStarted = false;
 GameSettings *gameSettings, gs;
+
+
+void timer();
+std::thread timerThread(timer);
+
 
 int main(int argc, char ** argv){
 	gameSettings = &gs;
@@ -69,8 +75,11 @@ int main(int argc, char ** argv){
 				int clientFd = connectNewClient(event, listenSock, epollFd);
 				if(clientFd == -1) continue;
 
-				Player player(clientFd, toChar(++lastId));
+				Player player(clientFd, ++lastId);
 				players[clientFd] = player;
+
+				char connectedChar[2] = {'O', '\n'};
+				sendToOne(connectedChar, 2, clientFd, players);
 
 				if(gameSettings->started){
 					char *parsedMap = convertToOneDimension(map, gameSettings->mapX,gameSettings->mapY);
@@ -90,14 +99,20 @@ int main(int argc, char ** argv){
 					for (std::list<HandleData>::iterator hd = hdList.begin(); hd != hdList.end(); ++hd){
 					
 						Message msg = hd->message;
-						players[hd->player.getFd()] = hd->player;
+						if(hd->playerSet) players[hd->player.getFd()] = hd->player;
 
 						Player player = players[clientFd];
 
 						printf("fd: %d, name: %s, points %d, ready: %d, x: %s, y: %s\n", 
 								player.getFd(), player.getName(), player.getPoints(), player.isReady(), player.getX(), player.getY());
 						if(msg.length > 0){
-							players = sendToAll(msg.content, msg.length, players);
+							if(msg.fd){
+								sendToOne(msg.content, msg.length, msg.fd, players);
+								printf("Message to %d: %s\n", msg.fd, msg.content);
+							}else {
+								players = sendToAll(msg.content, msg.length, players);
+								printf("Message to all: %s\n", msg.content);
+							}
 							free(msg.content);
 						}
 					}
@@ -118,7 +133,13 @@ void ctrl_c(int ){
 		players.erase(player->first);
     }
     close(listenSock);
-    printf("Closing server\n");
+    printf("\nClosing server\n");
+	timerThread.join();
+	printf("Join thread\n");
     exit(0);
 }
 //**********************
+
+void timer(){
+	
+}

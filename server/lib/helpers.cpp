@@ -6,6 +6,10 @@ char * toChar(int x) {
 	return str;
 }
 
+char toChar1(int x) {
+    return x + '0';
+}
+
 char* toChar2(int x) {
     int len =  snprintf(nullptr, 0, "%d", x);
     char* conv = new char[2];
@@ -54,4 +58,8 @@ int toInt(char * number) {
     s >> ret;
     // int ret = (int)number - 48;
     return ret;
+}
+
+int toInt(char number) {
+    return number + '0';
 }

@@ -34,5 +34,6 @@ void enterListeningMode(int listenSock);
 int createEpoll();
 int connectNewClient(epoll_event event, int listenSock, int epollFd);
 std::map<int, Player> checkConnections(std::map<int, Player> players);
+void sendToOne(char * buffer, int count, int clientFd);
 
 #endif

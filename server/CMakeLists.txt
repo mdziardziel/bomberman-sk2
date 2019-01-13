@@ -2,6 +2,10 @@
 cmake_minimum_required (VERSION 2.6)
 project (BombermanServer)
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
+
 # The version number.
 set (BombermanServer_VERSION_MAJOR 1)
 set (BombermanServer_VERSION_MINOR 1)
@@ -23,6 +27,7 @@ add_subdirectory (lib)
  
 # add executable 
 add_executable(bin/BombermanServer main.cpp)
+target_link_libraries(bin/BombermanServer Threads::Threads)
 target_link_libraries (bin/BombermanServer Engine)
 target_link_libraries (bin/BombermanServer Helpers)
 target_link_libraries (bin/BombermanServer Server)

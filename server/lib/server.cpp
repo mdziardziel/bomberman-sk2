@@ -26,9 +26,9 @@ std::map<int, Player> sendToAll(char * buffer, int count, std::map<int, Player> 
     std::unordered_set<int> bad;
     for(std::map<int, Player>::iterator player = players.begin(); player != players.end(); ++player){
         int clientFd = player->first;
-        printf("client fd %d\n", clientFd);
+        // printf("client fd %d\n", clientFd);
         res = write(clientFd, buffer, count);
-        printf("res %d count %d\n", res, count);
+        // printf("res %d count %d\n", res, count);
         if(res!=count)
             bad.insert(clientFd);
     }
@@ -48,6 +48,10 @@ std::map<int, Player> sendToOne(char * buffer, int count, int clientFd, std::map
     int res = write(clientFd, buffer, count);
     if(res!=count) players = removeClient(clientFd, players);
     return players;
+}
+
+void sendToOne(char * buffer, int count, int clientFd){
+    write(clientFd, buffer, count);
 }
 
 uint16_t getPortNumber(int defaultPort, int argc, char **argv){
