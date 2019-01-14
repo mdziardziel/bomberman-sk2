@@ -26,8 +26,14 @@ GameSettings *gameSettings, gs;
 void timer();
 std::thread timerThread(timer);
 
+int debugMode = 0;
+
 
 int main(int argc, char ** argv){
+	if(argc > 2 && argv[2][0] == 'd'){
+		printf("Run with debug mode\n\n");
+		debugMode = 1;
+	}
 	gameSettings = &gs;
 
 	gameSettings -> mapX = X_FIELDS;
@@ -95,7 +101,7 @@ int main(int argc, char ** argv){
 				char *buffer = (char*)malloc(sizeof(char) * READ_BUFFER);
 				int count = read(clientFd, buffer, READ_BUFFER);
 				if (count > 0) {
-					printf("Message from clientFd: %d: %s\n",clientFd, buffer);
+					if(debugMode) printf("Message from clientFd: %d: %s\n",clientFd, buffer);
 
 					std::list<HandleData> hdList = handlePlayersMsg(map, buffer, clientFd, players, gameSettings);
 					for (std::list<HandleData>::iterator hd = hdList.begin(); hd != hdList.end(); ++hd){
@@ -110,7 +116,7 @@ int main(int argc, char ** argv){
 
 						// printf("fd: %d, name: %s, points %d, ready: %d, x: %s, y: %s\n", 
 								// player.getFd(), player.getName(), player.getPoints(), player.isReady(), player.getX(), player.getY());
-						sleep(3);
+						if(debugMode) sleep(3);
 						if(msg.length > 0){
 							if(msg.fd){
 								sendToOne(msg.content, msg.length, msg.fd, players);

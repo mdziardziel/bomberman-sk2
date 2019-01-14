@@ -105,7 +105,7 @@ std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, s
             if(sizeOfBuffer >= 3){
                 char len[2] = { buffer[1], buffer[2] };
                 int leng = toInt(len);
-                char *rawMessage = (char*)malloc(sizeof(char) * (leng + 4));
+                char *rawMessage = (char*)malloc(sizeof(char) * (leng + 5));
                 if(sizeOfBuffer >= leng + 3){
                     char *name = new char[leng];
                     // printf("22222222222222\n");
@@ -116,7 +116,7 @@ std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, s
                         rawMessage[i+4] = buffer[i+3];
                     }
                     rawMessage[leng + 4] = '\n';
-                    rawMessage[0] = 'V';
+                    rawMessage[0] = 'N';
                     player.setName(name, leng);
 
                     char *tmp2 = (char*)malloc(sizeof(char) * 2);
@@ -131,11 +131,11 @@ std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, s
                     tmp3[2] = '\n';
                     HandleData hd2(3, tmp3, clientFd);
                     
-                    HandleData hd(player, 0, rawMessage);
+                    HandleData hd(player, leng + 5, rawMessage);
                     
                     hdList.push_back(hd1);
-                    hdList = sendLowerNames(players, clientFd, hdList);
                     hdList.push_back(hd2);
+                    hdList = sendLowerNames(players, clientFd, hdList);
                     hdList.push_back(hd);
                 }
             }
@@ -212,7 +212,7 @@ std::list<HandleData> sendLowerNames(std::map < int, Player> players, int client
         char * namePl = player->second.getName();
         int leng = player->second.getNameSize();
 
-        char *rawMessage = (char*)malloc(sizeof(char) * (leng + 4));//4
+        char *rawMessage = (char*)malloc(sizeof(char) * (leng + 5));//4
         char *name = new char[leng];
         rawMessage[1] = player->second.getCharId();
         char *nameSize = toChar2(leng);
@@ -220,7 +220,7 @@ std::list<HandleData> sendLowerNames(std::map < int, Player> players, int client
         for(int i = 0; i < leng; i++) rawMessage[i+4] = namePl[i];
         rawMessage[leng + 4] = '\n';
         rawMessage[0] = 'N';
-        HandleData hd(leng + 4, rawMessage, clientFd);
+        HandleData hd(leng + 5, rawMessage, clientFd);
         hdList.push_back(hd);
     }
 

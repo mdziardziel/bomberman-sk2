@@ -65,7 +65,7 @@ void sendToOne(char * buffer, int count, int clientFd){
 }
 
 uint16_t getPortNumber(int defaultPort, int argc, char **argv){
-    if(argc != 2) {
+    if(argc < 2) {
         printf( "Run with default port %d\n\n", defaultPort);
         return defaultPort;
     } else {
