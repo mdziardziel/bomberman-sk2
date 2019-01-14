@@ -3,6 +3,7 @@
 #include "Helpers.hpp"
 #include "Server.hpp"
 #include <thread>
+#include <unistd.h>
 
 
 //TODO move to server.hpp
@@ -91,32 +92,36 @@ int main(int argc, char ** argv){
 			int clientFd = events[i].data.fd;
 
 			if( events[i].events == EPOLLIN) {
-				char buffer[READ_BUFFER];
+				char *buffer = (char*)malloc(sizeof(char) * READ_BUFFER);
 				int count = read(clientFd, buffer, READ_BUFFER);
 				if (count > 0) {
+					printf("Message from clientFd: %d: %s\n",clientFd, buffer);
 
 					std::list<HandleData> hdList = handlePlayersMsg(map, buffer, clientFd, players, gameSettings);
 					for (std::list<HandleData>::iterator hd = hdList.begin(); hd != hdList.end(); ++hd){
 					
 						Message msg = hd->message;
+						// printf("33333333333333\n");
 						if(hd->playerSet) players[hd->player.getFd()] = hd->player;
+				
 
 						Player player = players[clientFd];
+						// printf("444444444443333\n");
 
-						printf("fd: %d, name: %s, points %d, ready: %d, x: %s, y: %s\n", 
-								player.getFd(), player.getName(), player.getPoints(), player.isReady(), player.getX(), player.getY());
+						// printf("fd: %d, name: %s, points %d, ready: %d, x: %s, y: %s\n", 
+								// player.getFd(), player.getName(), player.getPoints(), player.isReady(), player.getX(), player.getY());
+						sleep(3);
 						if(msg.length > 0){
 							if(msg.fd){
 								sendToOne(msg.content, msg.length, msg.fd, players);
-								printf("Message to %d: %s\n", msg.fd, msg.content);
 							}else {
 								players = sendToAll(msg.content, msg.length, players);
-								printf("Message to all: %s\n", msg.content);
 							}
 							free(msg.content);
 						}
 					}
 				}  
+				free(buffer);
 			}
 
 		}

@@ -116,25 +116,26 @@ std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, s
                         rawMessage[i+4] = buffer[i+3];
                     }
                     rawMessage[leng + 4] = '\n';
-                    rawMessage[0] = 'N';
+                    rawMessage[0] = 'V';
                     player.setName(name, leng);
 
                     char *tmp2 = (char*)malloc(sizeof(char) * 2);
                     tmp2[0] = 'Y';
                     tmp2[1] = '\n';
                     HandleData hd1(2, tmp2, clientFd);
-                    hdList.push_back(hd1);
+                    
                     
                     char *tmp3 = (char*)malloc(sizeof(char) * 3);
                     tmp3[0] = 'Q';
                     tmp3[1] = player.getCharId();
                     tmp3[2] = '\n';
                     HandleData hd2(3, tmp3, clientFd);
-                    hdList.push_back(hd2);
-
+                    
+                    HandleData hd(player, 0, rawMessage);
+                    
+                    hdList.push_back(hd1);
                     hdList = sendLowerNames(players, clientFd, hdList);
-
-                    HandleData hd(player, leng+4, rawMessage);
+                    hdList.push_back(hd2);
                     hdList.push_back(hd);
                 }
             }
@@ -206,23 +207,20 @@ std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, s
 
 std::list<HandleData> sendLowerNames(std::map < int, Player> players, int clientFd, std::list<HandleData> hdList){
     for(std::map<int, Player>::iterator player = players.begin(); player != players.end(); ++player){
-        printf("%d \n", player->second.getId());
+        // printf("%d \n", player->second.getId());
         if(player->second.getFd() == clientFd) break;
-
         char * namePl = player->second.getName();
         int leng = player->second.getNameSize();
 
-        char *rawMessage = (char*)malloc(sizeof(char) * (leng + 5));//4
+        char *rawMessage = (char*)malloc(sizeof(char) * (leng + 4));//4
         char *name = new char[leng];
-        // printf("22222222222222\n");
-        rawMessage[2] = player->second.getCharId();rawMessage[1] = '0';
+        rawMessage[1] = player->second.getCharId();
         char *nameSize = toChar2(leng);
-        rawMessage[3] = nameSize[0]; rawMessage[4] = nameSize[1];
-        for(int i = 0; i < leng; i++) rawMessage[i+5] = namePl[i];
-        rawMessage[leng + 5] = '\n';
+        rawMessage[2] = nameSize[0]; rawMessage[3] = nameSize[1];
+        for(int i = 0; i < leng; i++) rawMessage[i+4] = namePl[i];
+        rawMessage[leng + 4] = '\n';
         rawMessage[0] = 'N';
-
-        HandleData hd(leng + 5, rawMessage, clientFd);
+        HandleData hd(leng + 4, rawMessage, clientFd);
         hdList.push_back(hd);
     }
 

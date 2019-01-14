@@ -29,8 +29,11 @@ std::map<int, Player> sendToAll(char * buffer, int count, std::map<int, Player> 
         // printf("client fd %d\n", clientFd);
         res = write(clientFd, buffer, count);
         // printf("res %d count %d\n", res, count);
-        if(res!=count)
+        if(res!=count){
             bad.insert(clientFd);
+        } else{
+            printf("Message to all %s\n", buffer);
+        }
     }
     for(int clientFd : bad){
 		players = removeClient(clientFd, players);
@@ -46,12 +49,19 @@ std::map<int, Player> checkConnections(std::map<int, Player> players){
 
 std::map<int, Player> sendToOne(char * buffer, int count, int clientFd, std::map<int, Player> players){
     int res = write(clientFd, buffer, count);
-    if(res!=count) players = removeClient(clientFd, players);
+    if(res!=count) {
+        players = removeClient(clientFd, players);
+    } else{
+        printf("Message to %d: %s\n", clientFd, buffer);
+    }
     return players;
 }
 
 void sendToOne(char * buffer, int count, int clientFd){
-    write(clientFd, buffer, count);
+    int res = write(clientFd, buffer, count);
+    if(res==count) {
+        printf("Message to %d: %s\n", clientFd, buffer);
+    }
 }
 
 uint16_t getPortNumber(int defaultPort, int argc, char **argv){

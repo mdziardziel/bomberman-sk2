@@ -59,6 +59,8 @@ class Player{
         readyToPlay = 0;
         x = -1;
         y = -1;
+        char nothing[1] = {' '};
+        name = nothing;
     }
     Player(){points = 0; readyToPlay = false;}
 
