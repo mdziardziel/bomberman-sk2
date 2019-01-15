@@ -1,13 +1,15 @@
 #ifndef ENGINE_HPP
 #define ENGINE_HPP
 
-#define MAX_PLAYERS 6
+#define MAX_PLAYERS 8
 
 #include <map>
 #include <string.h>
 #include <unordered_set>
 #include <list>
 #include "Helpers.hpp"
+#include <string>
+// #include <time.h>
 
 struct GameSettings{
     int mapX;
@@ -16,25 +18,37 @@ struct GameSettings{
     int time;
 };
 
-struct Message {
-    // Message(int len, char* cont);
+class Message {
 
-    char * content;
+    std::string content;
     int length;
     int fd;
+    int skipFd;
 
-    Message(int len, char* cont, int f){
-        content = cont;
+public: 
+
+    Message(int len, char* cont, int f, int sf){
+        content = std::string(cont);
         length = len;
         fd = f;
+        skipFd = sf;
     }
-    Message(int len, char* cont){
-        content = cont;
-        length = len;
-        fd = 0;
+    Message(){}
+
+    const char* getContent(){
+        return content.c_str();
     }
-    Message(){
-        length = 0;
+
+    int getLength(){
+        return length;
+    }
+
+    int getFd(){
+        return fd;
+    }
+
+    int getSkipFd(){
+        return skipFd;
     }
 };
 
@@ -49,6 +63,7 @@ class Player{
     char* name;
     int nameSize;
     int fd;
+    time_t lastSeen;
 
     public:
 
@@ -61,6 +76,7 @@ class Player{
         y = -1;
         char nothing[1] = {' '};
         name = nothing;
+        lastSeen = time(0);
     }
     Player(){points = 0; readyToPlay = false;}
 
@@ -73,6 +89,8 @@ class Player{
         return toChar2(y);
     }
     int getPoints(){return points;}
+
+    time_t getLastSeen(){return lastSeen;}
 
     // void setFd(int f){fd = f;}
 
@@ -95,41 +113,8 @@ class Player{
     void setY(char *yy){ y = toInt(yy);}
     void setX(int xx){x = xx;}
     void setY(int yy){ y = yy;}
+    void setLastSeen(time_t t) {lastSeen = t;}
 
-};
-
-struct HandleData {
-    Message message;
-    Player player;
-    int playerSet;
-
-    HandleData(Player pl, int len, char * msgA, int f){
-        Message msg(len, msgA, f);
-        message = msg;
-        player = pl;
-        playerSet = 1;
-    }
-    HandleData(Player pl, int len, char * msgA){
-        Message msg(len, msgA);
-        message = msg;
-        player = pl;
-        playerSet = 1;
-    }
-    HandleData(int len, char * msgA){
-        Message msg(len, msgA);
-        message = msg;
-        playerSet = 0;
-    }
-    HandleData(int len, char * msgA, int f){
-        Message msg(len, msgA, f);
-        message = msg;
-        playerSet = 0;
-    }
-    HandleData(){
-        Message msg;
-        message = msg;
-        playerSet = 0;
-    }
 };
 
 char* generateWritableMap(char **, int x, int y, int boxes, int stones);
@@ -142,9 +127,10 @@ void resetMap(char **map, int x, int y);
 char * addPlayer(std::map < int, char* > players, int lastId, int clientFd);
 // char *findPlayerId(int clientFd, std::map < int, char* > players);
 // char* generatePlayersId(int newId);
-std::list<HandleData> handlePlayersMsg(char **map, char *buffer, int clientFd, std::map < int, Player> players, GameSettings *gameSettings);
-Player findPlayerById(std::map<int, Player> players, int id);
-int isEveryoneReady(std::map < int, Player> players, char **map, GameSettings *gameSettings);
-std::list<HandleData> sendLowerNames(std::map < int, Player> players, int clientFd, std::list<HandleData> hdList);
+void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int clientFd, std::map < int, Player>* players, GameSettings *gameSettings);
+Player findPlayerById(std::map<int, Player> *players, int id);
+int isEveryoneReady(std::map < int, Player> *players, char **map, GameSettings *gameSettings);
+void sendLowerNames(std::map < int, Player> *players, int clientFd, std::list<Message> *hdList);
+void receivePing(char *buffer, std::map < int, Player> *players, int clientFd, std::list<Message> *hdList);
 
 #endif

@@ -8,3 +8,4 @@
 #define READ_BUFFER 255
 #define WRITE_BUFFER 255
 #define MAX_PLAYERS 8
+#define MAX_LATENCY 10

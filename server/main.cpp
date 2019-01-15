@@ -4,6 +4,7 @@
 #include "Server.hpp"
 #include <thread>
 #include <unistd.h>
+#include <atomic>
 
 
 //TODO move to server.hpp
@@ -22,18 +23,22 @@ int lastId = -1;
 bool gameStarted = false;
 GameSettings *gameSettings, gs;
 
+void timer(std::list<Message>& list, std::map < int, Player>& players, int time);
+void sender(std::list<Message>& list, std::map < int, Player>& players);
+std::atomic<bool> done(false);
 
-void timer();
-std::thread timerThread(timer);
+std::list<Message> hdList;
 
 int debugMode = 0;
-
 
 int main(int argc, char ** argv){
 	if(argc > 2 && argv[2][0] == 'd'){
 		printf("Run with debug mode\n\n");
 		debugMode = 1;
 	}
+	std::thread timerThread(timer, std::ref(hdList), std::ref(players), 0);
+	std::thread senderThread(sender, std::ref(hdList), std::ref(players));
+
 	gameSettings = &gs;
 
 	gameSettings -> mapX = X_FIELDS;
@@ -50,7 +55,6 @@ int main(int argc, char ** argv){
 	enterListeningMode(listenSock);
 	epollFd = createEpoll();
 
-
 	event.events = EPOLLIN | EPOLLOUT;
 	event.data.fd = listenSock;
 
@@ -60,24 +64,11 @@ int main(int argc, char ** argv){
 	map = new char *[X_FIELDS];
 	for (int i = 0; i < X_FIELDS; i++) map[i] = new char[Y_FIELDS];
 	generateMap(map,X_FIELDS,Y_FIELDS,10,4);
-
-	// int parsedMapSize = X_FIELDS*Y_FIELDS;
-	// char *parsedMap = new char[parsedMapSize];
-
-	// int parsedPlayersSize = MAX_PLAYERS*14;
-	// char *parsedPlayers = new char[parsedPlayersSize];
-
-	// TODO add new thread, which will count down the time and inform main thread if any bomb explode or the round will end
-	// TODO delete destroyed objects and players
-	// TODO count points
-	// TODO send final classification and start new round
-	// TDOD freeze round if is less than 2 players
-
+	
     while(true){
 		int resultCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
 
 		for(int i = 0; i < resultCount; i++){
-
 			if( events[i].events == EPOLLIN && events[i].data.fd == listenSock ) {
 				int clientFd = connectNewClient(event, listenSock, epollFd);
 				if(clientFd == -1) continue;
@@ -86,11 +77,13 @@ int main(int argc, char ** argv){
 				players[clientFd] = player;
 
 				char connectedChar[2] = {'O', '\n'};
-				sendToOne(connectedChar, 2, clientFd, players);
+				Message mg(2, connectedChar, clientFd, 0);
+				hdList.push_back(mg);
 
 				if(gameSettings->started){
 					char *parsedMap = convertToOneDimension(map, gameSettings->mapX,gameSettings->mapY);
-					players = sendToOne(parsedMap, sizeof(parsedMap), clientFd, players);
+					Message mg2(sizeof(parsedMap), parsedMap, clientFd, 0);
+					hdList.push_back(mg2);
 				}
 				continue;
 			}
@@ -98,34 +91,14 @@ int main(int argc, char ** argv){
 			int clientFd = events[i].data.fd;
 
 			if( events[i].events == EPOLLIN) {
-				char *buffer = (char*)malloc(sizeof(char) * READ_BUFFER);
+				char buffer[READ_BUFFER];
 				int count = read(clientFd, buffer, READ_BUFFER);
 				if (count > 0) {
 					if(debugMode) printf("Message from clientFd: %d: %s\n",clientFd, buffer);
 
-					std::list<HandleData> hdList = handlePlayersMsg(map, buffer, clientFd, players, gameSettings);
-					for (std::list<HandleData>::iterator hd = hdList.begin(); hd != hdList.end(); ++hd){
-					
-						Message msg = hd->message;
-						// printf("33333333333333\n");
-						if(hd->playerSet) players[hd->player.getFd()] = hd->player;
-				
+					handlePlayersMsg(&hdList, map, buffer, clientFd, &players, gameSettings);
+					receivePing(buffer, &players, clientFd, &hdList);
 
-						Player player = players[clientFd];
-						// printf("444444444443333\n");
-
-						// printf("fd: %d, name: %s, points %d, ready: %d, x: %s, y: %s\n", 
-								// player.getFd(), player.getName(), player.getPoints(), player.isReady(), player.getX(), player.getY());
-						if(debugMode) sleep(3);
-						if(msg.length > 0){
-							if(msg.fd){
-								sendToOne(msg.content, msg.length, msg.fd, players);
-							}else {
-								players = sendToAll(msg.content, msg.length, players);
-							}
-							free(msg.content);
-						}
-					}
 				}  
 				free(buffer);
 			}
@@ -145,12 +118,70 @@ void ctrl_c(int ){
     }
     close(listenSock);
     printf("\nClosing server\n");
-	timerThread.join();
+	done = true;
 	printf("Join thread\n");
     exit(0);
 }
 //**********************
 
-void timer(){
-	
+void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int time){
+	while(!done.load()){
+		sleep(0.5);
+		for(std::map<int, Player>::iterator playerMap = playersMap.begin(); playerMap != playersMap.end(); ++playerMap){
+			Player player = playerMap->second;
+			if(std::time(0) - player.getLastSeen() >= MAX_LATENCY){
+				char rawMessage[3] = {'R', player.getCharId(), '\n'};
+				Message mg(3, rawMessage, 0, 0);
+				printf("removing %d\n", player.getFd());
+				players.erase(player.getFd());
+				close(player.getFd());
+        		list.push_back(mg);
+			} 
+		}
+	}
+}
+
+// void ping(std::list<Message>& list,std::map < int, Player> &playersMap, int time){
+// 	while(!done.load()){
+// 		    int res;
+// 				std::unordered_set<int> bad;
+// 				for(std::map<int, Player>::iterator player = players.begin(); player != players.end(); ++player){
+// 					int clientFd = player->first;
+// 					// printf("client fd %d\n", clientFd);
+// 					res = write(clientFd, buffer, count);
+// 					// printf("res %d count %d\n", res, count);
+// 					if(res!=count){
+// 						bad.insert(clientFd);
+// 					} else{
+// 						printf("Message to all %s\n", buffer);
+// 					}
+// 				}
+// 				for(int clientFd : bad){
+// 					players = removeClient(clientFd, players);
+// 				}
+//     			return players;
+// 		sleep(1);
+// 		time--;
+// 	}
+// }
+
+void sender(std::list<Message>& list, std::map < int, Player> &playersMap){
+	while(!done.load()){
+		while(!list.empty()){
+			Message msg = list.front();
+			list.pop_front();
+
+			if(debugMode) sleep(3);
+			if(msg.getLength() > 0){
+				if(msg.getFd()){
+					sendToOne(msg.getContent(), msg.getLength(), msg.getFd());
+				} else if(msg.getSkipFd()) {
+					sendToAlmostAll(msg.getContent(), msg.getLength(), playersMap, msg.getSkipFd());
+				} else{
+					sendToAll(msg.getContent(), msg.getLength(), playersMap);
+				}
+			}
+		}
+		if(list.empty()) sleep(0.01);
+	}
 }
