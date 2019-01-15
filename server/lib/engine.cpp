@@ -207,6 +207,7 @@ void sendLowerNames(std::map < int, Player> *players, int clientFd, std::list<Me
 void receivePing(char *buffer, std::map < int, Player> *players, int clientFd, std::list<Message> *hdList){
     char charId = toChar1(clientFd);
     if(buffer[0] == charId) {
+        printf("aaaa\n");
         char rawMessage[2] = {charId, '\n'};
         std::time_t t = std::time(0); 
         (*players)[clientFd].setLastSeen(t);

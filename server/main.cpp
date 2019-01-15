@@ -96,11 +96,10 @@ int main(int argc, char ** argv){
 				if (count > 0) {
 					if(debugMode) printf("Message from clientFd: %d: %s\n",clientFd, buffer);
 
-					handlePlayersMsg(&hdList, map, buffer, clientFd, &players, gameSettings);
 					receivePing(buffer, &players, clientFd, &hdList);
+					handlePlayersMsg(&hdList, map, buffer, clientFd, &players, gameSettings);
 
 				}  
-				free(buffer);
 			}
 
 		}
@@ -133,10 +132,12 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int ti
 				char rawMessage[3] = {'R', player.getCharId(), '\n'};
 				Message mg(3, rawMessage, 0, 0);
 				printf("removing %d\n", player.getFd());
-				players.erase(player.getFd());
+				playersMap.erase(player.getFd());
 				close(player.getFd());
         		list.push_back(mg);
-			} 
+			} else {
+				playersMap[player.getId()].setLastSeen(std::time(0));
+			}
 		}
 	}
 }
