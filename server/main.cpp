@@ -125,7 +125,7 @@ void ctrl_c(int ){
 
 void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int time){
 	while(!done.load()){
-		sleep(0.5);
+		sleep(3);
 		for(std::map<int, Player>::iterator playerMap = playersMap.begin(); playerMap != playersMap.end(); ++playerMap){
 			Player player = playerMap->second;
 			if(std::time(0) - player.getLastSeen() >= MAX_LATENCY){
@@ -135,9 +135,7 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int ti
 				playersMap.erase(player.getFd());
 				close(player.getFd());
         		list.push_back(mg);
-			} else {
-				playersMap[player.getId()].setLastSeen(std::time(0));
-			}
+			} 
 		}
 	}
 }
