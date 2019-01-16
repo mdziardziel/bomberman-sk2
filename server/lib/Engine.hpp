@@ -14,8 +14,13 @@
 struct GameSettings{
     int mapX;
     int mapY;
-    int started;
     int time;
+
+    GameSettings(){
+        time = 300;
+        mapX = 8;
+        mapY = 8;
+    }
 };
 
 class Message {
@@ -129,7 +134,7 @@ char * addPlayer(std::map < int, char* > players, int lastId, int clientFd);
 // char* generatePlayersId(int newId);
 void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int clientFd, std::map < int, Player>* players, GameSettings *gameSettings);
 Player findPlayerById(std::map<int, Player> *players, int id);
-int isEveryoneReady(std::map < int, Player> *players, char **map, GameSettings *gameSettings);
+// int isEveryoneReady(std::map < int, Player> *players, char **map, GameSettings &gameSettings);
 void sendLowerNames(std::map < int, Player> *players, int clientFd, std::list<Message> *hdList);
 void receivePing(char *buffer, std::map < int, Player> *players, int clientFd, std::list<Message> *hdList);
 

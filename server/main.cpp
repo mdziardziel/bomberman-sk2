@@ -20,10 +20,10 @@ epoll_event event, events[MAX_EVENTS];
 char **map;
 std::map < int, Player> players;
 int lastId = -1;
-bool gameStarted = false;
-GameSettings *gameSettings, gs;
+int remainingTime = 0;
+GameSettings gameSettings, gs;
 
-void timer(std::list<Message>& list, std::map < int, Player>& players, int time);
+void timer(std::list<Message>& list, std::map < int, Player>& players, int &remainingTime, GameSettings &gameSettings);
 void sender(std::list<Message>& list, std::map < int, Player>& players);
 std::atomic<bool> done(false);
 
@@ -36,13 +36,11 @@ int main(int argc, char ** argv){
 		printf("Run with debug mode\n\n");
 		debugMode = 1;
 	}
-	std::thread timerThread(timer, std::ref(hdList), std::ref(players), 0);
+	std::thread timerThread(timer, std::ref(hdList), std::ref(players), std::ref(remainingTime), std::ref(gameSettings));
 	std::thread senderThread(sender, std::ref(hdList), std::ref(players));
 
-	gameSettings = &gs;
-
-	gameSettings -> mapX = X_FIELDS;
-	gameSettings -> mapY = Y_FIELDS;
+	gameSettings.mapX = X_FIELDS;
+	gameSettings.mapY = Y_FIELDS;
 
 	port = getPortNumber(DEFAULT_PORT, argc, argv);
 	listenSock = createSocket(AF_INET, SOCK_STREAM, 0);
@@ -79,9 +77,10 @@ int main(int argc, char ** argv){
 				char connectedChar[2] = {'O', '\n'};
 				Message mg(2, connectedChar, clientFd, 0);
 				hdList.push_back(mg);
+				printf("%s\n", mg.getContent());
 
-				if(gameSettings->started){
-					char *parsedMap = convertToOneDimension(map, gameSettings->mapX,gameSettings->mapY);
+				if(remainingTime > 0){
+					char *parsedMap = convertToOneDimension(map, gameSettings.mapX,gameSettings.mapY);
 					Message mg2(sizeof(parsedMap), parsedMap, clientFd, 0);
 					hdList.push_back(mg2);
 				}
@@ -97,7 +96,7 @@ int main(int argc, char ** argv){
 					if(debugMode) printf("Message from clientFd: %d: %s\n",clientFd, buffer);
 
 					receivePing(buffer, &players, clientFd, &hdList);
-					handlePlayersMsg(&hdList, map, buffer, clientFd, &players, gameSettings);
+					handlePlayersMsg(&hdList, map, buffer, clientFd, &players, &gameSettings);
 
 				}  
 			}
@@ -123,9 +122,12 @@ void ctrl_c(int ){
 }
 //**********************
 
-void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int time){
+void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &remainingTime, GameSettings &gameSettings){
+	int roundStartTime;
 	while(!done.load()){
-		sleep(3);
+		sleep(0.5);
+		int numPlayers = 0;
+		int readyPlayers = 0;
 		for(std::map<int, Player>::iterator playerMap = playersMap.begin(); playerMap != playersMap.end(); ++playerMap){
 			Player player = playerMap->second;
 			if(std::time(0) - player.getLastSeen() >= MAX_LATENCY){
@@ -136,51 +138,48 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int ti
 				close(player.getFd());
         		list.push_back(mg);
 			} 
+
+			if(player.isReady()){readyPlayers++;}
+			numPlayers++;
 		}
+		if(numPlayers == readyPlayers && numPlayers >= MIN_PLAYERS && remainingTime <= 0){
+			remainingTime = gameSettings.time;
+
+			char rawMessage[2];
+			rawMessage[0] = 'S';
+			rawMessage[1] = '\n';
+			Message mg(2, rawMessage, 0, 0);
+			list.push_back(mg);
+			roundStartTime = std::time(0);
+		}
+		if(remainingTime > 0){
+			remainingTime = gameSettings.time + roundStartTime -  std::time(0);
+		}
+
+		//set player as not ready when time ends
 	}
 }
-
-// void ping(std::list<Message>& list,std::map < int, Player> &playersMap, int time){
-// 	while(!done.load()){
-// 		    int res;
-// 				std::unordered_set<int> bad;
-// 				for(std::map<int, Player>::iterator player = players.begin(); player != players.end(); ++player){
-// 					int clientFd = player->first;
-// 					// printf("client fd %d\n", clientFd);
-// 					res = write(clientFd, buffer, count);
-// 					// printf("res %d count %d\n", res, count);
-// 					if(res!=count){
-// 						bad.insert(clientFd);
-// 					} else{
-// 						printf("Message to all %s\n", buffer);
-// 					}
-// 				}
-// 				for(int clientFd : bad){
-// 					players = removeClient(clientFd, players);
-// 				}
-//     			return players;
-// 		sleep(1);
-// 		time--;
-// 	}
-// }
 
 void sender(std::list<Message>& list, std::map < int, Player> &playersMap){
 	while(!done.load()){
 		while(!list.empty()){
 			Message msg = list.front();
 			list.pop_front();
-
+			// printf("not empty\n");
 			if(debugMode) sleep(3);
 			if(msg.getLength() > 0){
 				if(msg.getFd()){
+					// printf("not empty2\n");
 					sendToOne(msg.getContent(), msg.getLength(), msg.getFd());
 				} else if(msg.getSkipFd()) {
+					// printf("not empty3\n");
 					sendToAlmostAll(msg.getContent(), msg.getLength(), playersMap, msg.getSkipFd());
 				} else{
+					// printf("not empty4 %s\n", msg.getContent());
 					sendToAll(msg.getContent(), msg.getLength(), playersMap);
 				}
 			}
 		}
-		if(list.empty()) sleep(0.01);
+		sleep(0.01);
 	}
 }

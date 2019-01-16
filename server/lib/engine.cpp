@@ -158,13 +158,6 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
             // players[clientFd].ready();
             // printf("ready: %d\n", player.isReady());
             // players = checkConnections(players); // sent control message to check if everyone is still connected
-            if(isEveryoneReady(players, map, gameSettings)){           
-                char rawMessage[2];
-                rawMessage[0] = 'S';
-                rawMessage[1] = '\n';
-                Message mg(2, rawMessage, 0, 0);
-                hdList->push_back(mg);
-            }
             break;
         case 'T': 
             if(sizeOfBuffer >= 3){
@@ -217,15 +210,15 @@ void receivePing(char *buffer, std::map < int, Player> *players, int clientFd, s
 }
 
 
-int isEveryoneReady(std::map < int, Player> *players, char **map, GameSettings *gameSettings){
-    for(std::map<int, Player>::iterator player = players->begin(); player != players->end(); ++player){
-        // printf("%s\n", player->second.getName());
-        if(!player->second.isReady()) return 0;
-    }
+// int isEveryoneReady(std::map < int, Player> *players, char **map, GameSettings *gameSettings){
+//     for(std::map<int, Player>::iterator player = players->begin(); player != players->end(); ++player){
+//         // printf("%s\n", player->second.getName());
+//         if(!player->second.isReady()) return 0;
+//     }
 
-    generateMap(map, gameSettings->mapX, gameSettings->mapY, 6, 4);
-    return 1;
-}
+//     generateMap(map, gameSettings->mapX, gameSettings->mapY, 6, 4);
+//     return 1;
+// }
 
 
 Player findPlayerById(std::map<int, Player> *players, int id){
