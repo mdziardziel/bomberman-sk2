@@ -21,6 +21,14 @@ struct GameSettings{
         mapX = 8;
         mapY = 8;
     }
+
+    char* getCharX(){
+        return toChar2(mapX);
+    }
+
+    char* getCharY(){
+        return toChar2(mapY);
+    }
 };
 
 class Message {
@@ -130,16 +138,14 @@ void generateMap(char **map, GameSettings gs, int boxes);
 char* convertToOneDimension(char **map, GameSettings gameSettings);
 void insertBoxes(char **map, int number, GameSettings gs);
 void resetMap(char **map, GameSettings gs);
-// void addPlayerToMap(char **map, char playerId, int x, int y);
-// void removePlayerFromMap(char **map, char playerId, int x, int y);
 char * addPlayer(std::map < int, char* > players, int lastId, int clientFd);
-// char *findPlayerId(int clientFd, std::map < int, char* > players);
-// char* generatePlayersId(int newId);
-void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int clientFd, std::map < int, Player>* players, GameSettings *gameSettings);
+void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int clientFd, std::map < int, Player>* players, GameSettings *gameSettings, int remainingTime);
 Player findPlayerById(std::map<int, Player> *players, int id);
-// int isEveryoneReady(std::map < int, Player> *players, char **map, GameSettings &gameSettings);
 void sendLowerNames(std::map < int, Player> *players, int clientFd, std::list<Message> *hdList);
 void receivePing(char *buffer, std::map < int, Player> *players, int clientFd, std::list<Message> *hdList);
 void sendTime(int remainingTime, std::list<Message> *list, int clientFd);
+void sendPoints(char id, int ptsInt, std::list<Message> *list);
+void sendMapSies(GameSettings gs, std::list<Message> *list, int fd);
+
 
 #endif

@@ -79,12 +79,6 @@ int main(int argc, char ** argv){
 				hdList.push_back(mg);
 				printf("%s\n", mg.getContent());
 
-				if(remainingTime > 0){
-					char *parsedMap = convertToOneDimension(map, gameSettings);
-					Message mg2(sizeof(parsedMap), parsedMap, clientFd, 0);
-					sendTime(remainingTime, &hdList, clientFd);
-					hdList.push_back(mg2);
-				}
 				continue;
 			}
 
@@ -97,7 +91,7 @@ int main(int argc, char ** argv){
 					if(debugMode) printf("Message from clientFd: %d: %s\n",clientFd, buffer);
 
 					receivePing(buffer, &players, clientFd, &hdList);
-					handlePlayersMsg(&hdList, map, buffer, clientFd, &players, &gameSettings);
+					handlePlayersMsg(&hdList, map, buffer, clientFd, &players, &gameSettings, remainingTime);
 
 				}  
 			}
@@ -173,23 +167,24 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 		if(remainingTime > 0){
 			remainingTime = gameSettings.time + roundStartTime -  std::time(0);
 			
-			// ends round
+			// time ends
 			if(remainingTime <= 0){
 
-				//set all players to not ready state
+				//set players as not ready
 				for(std::map<int, Player>::iterator playerMap = playersMap.begin(); playerMap != playersMap.end(); ++playerMap){
 					Player player = playerMap->second;
 
 					playersMap[player.getFd()].notReady();
+					
 					//send points to all
+					sendPoints(player.getCharId(), player.getPoints(), &list);
 
+					//reset points
 					playersMap[player.getFd()].resetPoints();
 
 				}
 			}
 		}
-
-		//set player as not ready when time ends
 	}
 }
 
@@ -209,6 +204,6 @@ void sender(std::list<Message>& list, std::map < int, Player> &playersMap){
 				}
 			}
 		}
-		sleep(0.01);
+		sleep(0.25);
 	}
 }
