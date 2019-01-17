@@ -61,7 +61,7 @@ int main(int argc, char ** argv){
 	//game
 	map = new char *[X_FIELDS];
 	for (int i = 0; i < X_FIELDS; i++) map[i] = new char[Y_FIELDS];
-	generateMap(map,X_FIELDS,Y_FIELDS,10,4);
+	generateMap(map, gameSettings, gs.mapX+gs.mapY);
 	
     while(true){
 		int resultCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
@@ -80,8 +80,9 @@ int main(int argc, char ** argv){
 				printf("%s\n", mg.getContent());
 
 				if(remainingTime > 0){
-					char *parsedMap = convertToOneDimension(map, gameSettings.mapX,gameSettings.mapY);
+					char *parsedMap = convertToOneDimension(map, gameSettings);
 					Message mg2(sizeof(parsedMap), parsedMap, clientFd, 0);
+					sendTime(remainingTime, &hdList, clientFd);
 					hdList.push_back(mg2);
 				}
 				continue;
@@ -125,11 +126,15 @@ void ctrl_c(int ){
 void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &remainingTime, GameSettings &gameSettings){
 	int roundStartTime;
 	while(!done.load()){
+	
 		sleep(0.5);
 		int numPlayers = 0;
 		int readyPlayers = 0;
+
 		for(std::map<int, Player>::iterator playerMap = playersMap.begin(); playerMap != playersMap.end(); ++playerMap){
 			Player player = playerMap->second;
+
+			//remove player when not responds
 			if(std::time(0) - player.getLastSeen() >= MAX_LATENCY){
 				char rawMessage[3] = {'R', player.getCharId(), '\n'};
 				Message mg(3, rawMessage, 0, 0);
@@ -142,18 +147,46 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 			if(player.isReady()){readyPlayers++;}
 			numPlayers++;
 		}
+
+		//start game when every are ready
 		if(numPlayers == readyPlayers && numPlayers >= MIN_PLAYERS && remainingTime <= 0){
 			remainingTime = gameSettings.time;
 
+			//send start signal
 			char rawMessage[2];
 			rawMessage[0] = 'S';
 			rawMessage[1] = '\n';
 			Message mg(2, rawMessage, 0, 0);
 			list.push_back(mg);
+
+			//send map 
+			char *parsedMap = convertToOneDimension(map, gameSettings);
+			Message mg2(sizeof(parsedMap), parsedMap, 0, 0);
+			sendTime(remainingTime, &hdList, 0);
+			hdList.push_back(mg2);
+
+			sendTime(remainingTime, &list, 0);
 			roundStartTime = std::time(0);
 		}
+
+		//set remaining time
 		if(remainingTime > 0){
 			remainingTime = gameSettings.time + roundStartTime -  std::time(0);
+			
+			// ends round
+			if(remainingTime <= 0){
+
+				//set all players to not ready state
+				for(std::map<int, Player>::iterator playerMap = playersMap.begin(); playerMap != playersMap.end(); ++playerMap){
+					Player player = playerMap->second;
+
+					playersMap[player.getFd()].notReady();
+					//send points to all
+
+					playersMap[player.getFd()].resetPoints();
+
+				}
+			}
 		}
 
 		//set player as not ready when time ends
@@ -165,17 +198,13 @@ void sender(std::list<Message>& list, std::map < int, Player> &playersMap){
 		while(!list.empty()){
 			Message msg = list.front();
 			list.pop_front();
-			// printf("not empty\n");
 			if(debugMode) sleep(3);
 			if(msg.getLength() > 0){
 				if(msg.getFd()){
-					// printf("not empty2\n");
 					sendToOne(msg.getContent(), msg.getLength(), msg.getFd());
 				} else if(msg.getSkipFd()) {
-					// printf("not empty3\n");
 					sendToAlmostAll(msg.getContent(), msg.getLength(), playersMap, msg.getSkipFd());
 				} else{
-					// printf("not empty4 %s\n", msg.getContent());
 					sendToAll(msg.getContent(), msg.getLength(), playersMap);
 				}
 			}

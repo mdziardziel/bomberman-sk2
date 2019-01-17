@@ -4,7 +4,7 @@
 
 
 
-void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int clientFd, std::map < int, Player>* players, GameSettings *gameSettings){
+void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int clientFd, std::map < int, Player>* players, GameSettings *gs){
     // printf("%s\n", players[clientFd].getId());
 
     char move = buffer[0];
@@ -22,7 +22,7 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
                 char y[2] = { buffer[3], buffer[4] };
                 int xI = toInt(x);
                 int yI = toInt(y);
-                if(xI >= gameSettings->mapX || yI >= gameSettings->mapY) return;
+                if(xI >= gs->mapX || yI >= gs->mapY) return;
                 // printf("33333  %d %d\n");
                 map[toInt(x)][toInt(y)] = 'o';
                 // printf("444444\n");
@@ -66,9 +66,9 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
                 char x[2] = { buffer[1], buffer[2] };
                 char y[2] = { buffer[3], buffer[4] };
                 // printf("%d %d\n", toInt(x), toInt(y));
-                gameSettings->mapX = toInt(x);
-                gameSettings->mapY = toInt(y);
-                // printf("%d %d\n", gameSettings->mapX, gameSettings->mapY);
+                gs->mapX = toInt(x);
+                gs->mapY = toInt(y);
+                // printf("%d %d\n", gs->mapX, gs->mapY);
                 char rawMessage[6];
                 rawMessage[0] = 'F';
                 rawMessage[1] = x[0];
@@ -162,7 +162,7 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
         case 'T': 
             if(sizeOfBuffer >= 3){
                 char time[2] = { buffer[1], buffer[2] };
-                gameSettings->time = toInt(time[2]);
+                gs->time = toInt(time[2]);
                 char rawMessage[4];
                 rawMessage[0] = 'T';
                 rawMessage[1] = buffer[1];
@@ -174,6 +174,22 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
             }
             break;
     }
+}
+
+void sendTime(int remainingTime, std::list<Message> *list, int clientFd){
+    char rawMessage[9];
+    char *charTime = toChar3(remainingTime);
+    rawMessage[0] = 'T';
+    rawMessage[1] = charTime[0];
+    rawMessage[2] = charTime[1];
+    rawMessage[3] = charTime[2];
+    rawMessage[4] = '.';
+    rawMessage[5] = '0';
+    rawMessage[6] = '0';
+    rawMessage[7] = '0';
+    rawMessage[8] = '\n';
+    Message mg(9, rawMessage, clientFd, 0);
+    list->push_back(mg);
 }
 
 void sendLowerNames(std::map < int, Player> *players, int clientFd, std::list<Message> *hdList){
@@ -230,23 +246,23 @@ Player findPlayerById(std::map<int, Player> *players, int id){
     }
 }
 
-char* generateWritableMap(char ** map, int x, int y, int boxes, int stones){
-    generateMap(map, x, y, boxes, stones);
-    return convertToOneDimension(map, x, y);
+char* generateWritableMap(char ** map, GameSettings gs, int boxes){
+    generateMap(map, gs, boxes);
+    return convertToOneDimension(map, gs);
 }
 
-void generateMap(char **map, int x, int y, int boxes, int stones){
-    resetMap(map, x, y);
-    if(boxes + stones >= x*y - MAX_PLAYERS*2){
-        boxes = x+y;
-        stones = boxes;
+void generateMap(char **map, GameSettings gs, int boxes){
+    resetMap(map, gs);
+    if(boxes*2 >= gs.mapX*gs.mapY - MAX_PLAYERS*2){
+        boxes = gs.mapX+gs.mapY;
     }
 
-    insertObjects(map, 's', stones, x, y);
-    insertObjects(map, 'b', boxes, x, y);
+    insertBoxes(map, boxes, gs);
 } 
 
-char* convertToOneDimension(char **map, int x, int y){
+char* convertToOneDimension(char **map, GameSettings gs){
+    int x = gs.mapX;
+    int y = gs.mapY;
     int size = x*y + 1;
     char *oneDimension = new char[size];
     for (int i = 0; i < x; i++){
@@ -258,22 +274,22 @@ char* convertToOneDimension(char **map, int x, int y){
     return oneDimension;
 }
 
-void insertObjects(char **map, char token, int number, int x, int y){
+void insertBoxes(char **map, int number, GameSettings gs){
     srand (time(NULL));
     while(number > 0) {
         int tokenX, tokenY;
-        tokenX = rand() % x;
-        tokenY = rand() % y;
-        if(map[tokenX][tokenY] == '_'){
-            map[tokenX][tokenY] = token;
+        tokenX = rand() % gs.mapX;
+        tokenY = rand() % gs.mapY;
+        if(map[tokenX][tokenY] == '_' && (tokenX*tokenY)%2 != 1){
+            map[tokenX][tokenY] = 'b';
             number--;
         }
     }
 }
 
-void resetMap(char **map, int x, int y){
-    for (int i = 0; i < x; i++){
-        for (int j = 0; j < y; j++) {
+void resetMap(char **map, GameSettings gs){
+    for (int i = 0; i < gs.mapX; i++){
+        for (int j = 0; j < gs.mapY; j++) {
             map[i][j] = '_';
         }
     }      

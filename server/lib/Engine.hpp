@@ -101,11 +101,14 @@ class Player{
 
     int addPoint(){return ++points;}
 
+    void resetPoints(){points = 0;}
+
     int isReady(){ return readyToPlay; }
 
     char getCharId(){ return toChar1(id); }
     int getId(){ return id; }
     void ready(){readyToPlay = 1;}
+    void notReady(){readyToPlay = 0;}
     char* getName(){return name;}
     int getNameSize(){ return nameSize;}
     
@@ -122,11 +125,11 @@ class Player{
 
 };
 
-char* generateWritableMap(char **, int x, int y, int boxes, int stones);
-void generateMap(char **map, int x, int y, int boxes, int stones);
-char* convertToOneDimension(char **map, int x, int y);
-void insertObjects(char **map, char token, int number, int x, int y);
-void resetMap(char **map, int x, int y);
+char* generateWritableMap(char **, GameSettings gs, int boxes);
+void generateMap(char **map, GameSettings gs, int boxes);
+char* convertToOneDimension(char **map, GameSettings gameSettings);
+void insertBoxes(char **map, int number, GameSettings gs);
+void resetMap(char **map, GameSettings gs);
 // void addPlayerToMap(char **map, char playerId, int x, int y);
 // void removePlayerFromMap(char **map, char playerId, int x, int y);
 char * addPlayer(std::map < int, char* > players, int lastId, int clientFd);
@@ -137,5 +140,6 @@ Player findPlayerById(std::map<int, Player> *players, int id);
 // int isEveryoneReady(std::map < int, Player> *players, char **map, GameSettings &gameSettings);
 void sendLowerNames(std::map < int, Player> *players, int clientFd, std::list<Message> *hdList);
 void receivePing(char *buffer, std::map < int, Player> *players, int clientFd, std::list<Message> *hdList);
+void sendTime(int remainingTime, std::list<Message> *list, int clientFd);
 
 #endif
