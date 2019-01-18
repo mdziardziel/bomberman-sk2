@@ -155,6 +155,7 @@ void sendPlyersPositions(std::list<Message> *list, std::map < int, Player>* play
 void generatePlyersPositions(std::map < int, Player>* players, GameSettings gs, char** map);
 int getLastId(std::map < int, Player>* players);
 void reuseId(std::map < int, Player>* players, int id);
+int validatePosition(int f, int ogr);
 
 // void printToConsole( std::list<Message>* list, char *arr, int len);
 

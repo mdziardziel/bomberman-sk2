@@ -27,8 +27,6 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
                 int yI = toInt(y);
                 if(xI >= gs->mapX || yI >= gs->mapY) return;
 
-                map[toInt(x)][toInt(y)] = 'o';
-
                 rawMessage[0] = 'B';
                 rawMessage[1] = playerId;
                 rawMessage[2] = buffer[1];
@@ -37,8 +35,62 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
                 rawMessage[5] = buffer[4];
                 rawMessage[6] = '\n';
 
-                (*players)[clientFd].setX(x);
-                (*players)[clientFd].setY(y);
+                int xl = validatePosition(xI -1, gs->mapX);
+                int xp = validatePosition(xI + 1, gs->mapX);
+                int yt = validatePosition(yI +1, gs->mapY);
+                int yb = validatePosition(yI -1, gs->mapY);
+
+                int xll = validatePosition(xI -2, gs->mapX);
+                int xpp = validatePosition(xI + 2, gs->mapX);
+                int ytt = validatePosition(yI +2, gs->mapY);
+                int ybb = validatePosition(yI -2, gs->mapY);
+
+                
+                // update map
+                if(xl*yI%2 != 1){
+                    printf("1 %c\n", map[xl][yI]);
+                    if(map[xl][yI] == '1'){
+                        printf("2\n");
+                        map[xl][yI] = '0';
+                    } else if(map[xll][yI] == '1'){
+                        printf("3\n");
+                        map[xll][yI] = '0';
+                    }
+                }
+                if(xp*yI%2 != 1){
+                    printf("11 %c\n", map[xp][yI]);
+                    if(map[xp][yI] == '1'){
+                        printf("22\n");
+                        map[xp][yI] = '0';
+                    } else if(map[xpp][yI] == '1'){
+                        printf("33\n");
+                        map[xpp][yI] = '0';
+                    }
+                }
+                if(yt*xI%2 != 1){
+                    printf("111 %c\n", map[xI][yt]);
+                    if(map[xI][yt] == '1'){
+                        printf("222\n");
+                        map[xI][yt] = '0';
+                    } else if(map[xI][ytt] == '1'){
+                        printf("333\n");
+                        map[xI][ytt] = '0';
+                    }
+                }
+                if(yb*xI%2 != 1){
+                    printf("1111 %c\n", map[xI][yb]);
+                    if(map[xI][yb] == '1'){
+                        printf("2222\n");
+                        map[xI][yb] = '0';
+                    } else if(map[xI][ybb] == '1'){
+                        printf("3333\n");
+                        map[xI][ybb] = '0';
+                    }
+                }
+
+
+                // (*players)[clientFd].setX(x);
+                // (*players)[clientFd].setY(y);
 
                 Message mg(7, rawMessage, 0, clientFd);
                 hdList->push_back(mg);
@@ -109,7 +161,7 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
                         sendMapSies((*gs), hdList, clientFd);
 
                         char *parsedMap = convertToOneDimension(map, (*gs));
-                        Message mg1(sizeof(parsedMap), parsedMap, clientFd, 0);
+                        Message mg1(strlen(parsedMap), parsedMap, clientFd, 0);
                         hdList->push_back(mg1);
 
                         sendTime(remainingTime, hdList, clientFd);
@@ -161,6 +213,12 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
     }
 }
 
+int validatePosition(int f, int ogr){
+    if(f < 0) return validatePosition(f + 1, ogr);
+    if(f >= ogr) return validatePosition(f - 1, ogr);
+    return f;
+}
+
 void reuseId(std::map < int, Player>* players, int id){
     int n = getLastId(players);
 
@@ -195,6 +253,13 @@ void generatePlyersPositions(std::map < int, Player>* players, GameSettings gs, 
             }
         }
     }
+
+    // remove X
+    for (int i = 0; i < gs.mapX; i++){
+        for (int j = 0; j < gs.mapY; j++) {
+            if(map[i][j] == 'X') map[i][j] = '0';
+        }
+    }     
 }
 
 
