@@ -24,13 +24,13 @@ int remainingTime = 0;
 GameSettings gameSettings, gs;
 
 void debugger(std::list<Message>& list);
-void timer(std::list<Message>& list, std::map < int, Player>& players, int &remainingTime, GameSettings &gameSettings);
+void timer(std::list<Message>& list, std::map < int, Player>& players, int &rt, GameSettings &gs);
 void sender(std::list<Message>& list, std::map < int, Player>& players);
 std::atomic<bool> done(false);
 
 std::list<Message> hdList;
 
-int debugMode = 0;
+int debugMode = 1;
 
 int main(int argc, char ** argv){
 	if(argc > 2 && argv[2][0] == 'd'){
@@ -77,7 +77,7 @@ int main(int argc, char ** argv){
 				Player player(clientFd, getLastId(&players));
 				players[clientFd] = player;
 
-				printf("%d\n", player.getId());
+				// printf("%d\n", player.getId());
 
 				char connectedChar[2] = {'O', '\n'};
 				Message mg(2, connectedChar, clientFd, 0);
@@ -94,8 +94,10 @@ int main(int argc, char ** argv){
 				char buffer[READ_BUFFER];
 				int count = read(clientFd, buffer, READ_BUFFER);
 				if (count > 0) {
+					// if(debugMode) printf("1 (%.*s) %d %s\n", count, buffer, clientFd, players[clientFd].getName());
 					receivePing(buffer, &players, clientFd, &hdList);
 					handlePlayersMsg(&hdList, map, buffer, clientFd, &players, &gameSettings, remainingTime);
+					// if(debugMode) printf("2 (%.*s) %d %s\n", count, buffer, clientFd, players[clientFd].getName());
 				}  
 			}
 		}
@@ -135,8 +137,8 @@ void debugger(std::list<Message>& list){
 }
 
 
-void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &remainingTime, GameSettings &gameSettings){
-	int roundStartTime;
+void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &rt, GameSettings &gs){
+	int roundStartTime = 0;
 	while(!done.load()){
 	
 		sleep(2);
@@ -145,9 +147,13 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 
 		for(std::map<int, Player>::iterator playerMap = playersMap.begin(); playerMap != playersMap.end(); ++playerMap){
 			Player player = playerMap->second;
-								// printf("id %c\n", player.getCharId());
+			// printf("id %c\n", player.getCharId());
+			// if(debugMode) printf("3 (%.*s) %d %s\n",  player.getName());
 			//remove player when not responds
+			
 			if(std::time(0) - player.getLastSeen() >= MAX_LATENCY){
+				// if(debugMode) printf("4 (%.*s) %d %s\n",  player.getName());
+				// printf("%s %d\n",player.getName(), playersMap.size());
 				char rawMessage[3] = {'R', player.getCharId(), '\n'};
 				Message mg(3, rawMessage, 0, 0);
 				list.push_back(mg);
@@ -168,13 +174,13 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 		}
 
 		//start game when every are ready
-		if(numPlayers == readyPlayers && numPlayers >= MIN_PLAYERS && remainingTime <= 0){
-			generateMap(map, gameSettings, gs.mapX+gs.mapY);
+		if(numPlayers == readyPlayers && numPlayers >= MIN_PLAYERS && rt <= 0){
+			generateMap(map, gs, gs.mapX+gs.mapY);
 			// printf("lalalallalalal\n");
-			remainingTime = gameSettings.time;
+			rt = gs.time;
 
 			// generate players positions
-			generatePlyersPositions(&playersMap, gameSettings, map); //get map from local, not global
+			generatePlyersPositions(&playersMap, gs, map); //get map from local, not global
 
 			//send start signal
 			char rawMessage[2];
@@ -184,28 +190,28 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 			list.push_back(mg);
 
 			// send map sizes
-			sendMapSies(gameSettings, &list, 0);
+			sendMapSies(gs, &list, 0);
 
 			//send map 
-			char *parsedMap = convertToOneDimension(map, gameSettings);
+			char *parsedMap = convertToOneDimension(map, gs);
 			Message mg2(strlen(parsedMap), parsedMap, 0, 0);
-			sendTime(remainingTime, &hdList, 0);
 			hdList.push_back(mg2);
 
 			//send players positions
 			sendPlyersPositions(&list, &playersMap);
 
-			sendTime(remainingTime, &list, 0);
+			sendTime(rt, &list, 0);
 			roundStartTime = std::time(0);
 		}
 
 		//set remaining time
-		if(remainingTime > 0){
-			remainingTime = gameSettings.time + roundStartTime -  std::time(0);
+		if(roundStartTime > 0){
+			rt = gs.time + roundStartTime -  std::time(0);
+							// printf("%s %d\n",player.getName(), playersMap.size());
 			
 			// time ends
-			if(remainingTime <= 0){
-
+			if(rt <= 0){
+				roundStartTime = 0;
 				//set players as not ready
 				for(std::map<int, Player>::iterator playerMap = playersMap.begin(); playerMap != playersMap.end(); ++playerMap){
 					Player player = playerMap->second;
@@ -229,7 +235,6 @@ void sender(std::list<Message>& list, std::map < int, Player> &playersMap){
 		while(!list.empty()){
 			Message msg = list.front();
 			list.pop_front();
-			if(debugMode) sleep(3);
 			if(msg.getLength() > 0){
 				if(msg.getFd()){
 					sendToOne(msg.getContent(), msg.getLength(), msg.getFd());

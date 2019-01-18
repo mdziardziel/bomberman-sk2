@@ -20,7 +20,7 @@ struct GameSettings{
     int time;
 
     GameSettings(){
-        time = 300;
+        time = 60;
         mapX = 8;
         mapY = 8;
     }
@@ -104,6 +104,13 @@ class Player{
     char* getY(){
         return toChar2(y);
     }
+
+    int getIntX(){
+        return x;
+    }
+    int getIntY(){
+        return y;
+    }
     int getPoints(){return points;}
 
     time_t getLastSeen(){return lastSeen;}
@@ -156,6 +163,8 @@ void generatePlyersPositions(std::map < int, Player>* players, GameSettings gs, 
 int getLastId(std::map < int, Player>* players);
 void reuseId(std::map < int, Player>* players, int id);
 int validatePosition(int f, int ogr);
+void generatePlyersPosition(std::map < int, Player>* players, GameSettings gs, char** map, int clientFd);
+
 
 // void printToConsole( std::list<Message>* list, char *arr, int len);
 

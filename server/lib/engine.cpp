@@ -48,42 +48,30 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
                 
                 // update map
                 if(xl*yI%2 != 1){
-                    printf("1 %c\n", map[xl][yI]);
                     if(map[xl][yI] == '1'){
-                        printf("2\n");
                         map[xl][yI] = '0';
                     } else if(map[xll][yI] == '1'){
-                        printf("3\n");
                         map[xll][yI] = '0';
                     }
                 }
                 if(xp*yI%2 != 1){
-                    printf("11 %c\n", map[xp][yI]);
                     if(map[xp][yI] == '1'){
-                        printf("22\n");
                         map[xp][yI] = '0';
                     } else if(map[xpp][yI] == '1'){
-                        printf("33\n");
                         map[xpp][yI] = '0';
                     }
                 }
                 if(yt*xI%2 != 1){
-                    printf("111 %c\n", map[xI][yt]);
                     if(map[xI][yt] == '1'){
-                        printf("222\n");
                         map[xI][yt] = '0';
                     } else if(map[xI][ytt] == '1'){
-                        printf("333\n");
                         map[xI][ytt] = '0';
                     }
                 }
                 if(yb*xI%2 != 1){
-                    printf("1111 %c\n", map[xI][yb]);
                     if(map[xI][yb] == '1'){
-                        printf("2222\n");
                         map[xI][yb] = '0';
                     } else if(map[xI][ybb] == '1'){
-                        printf("3333\n");
                         map[xI][ybb] = '0';
                     }
                 }
@@ -170,31 +158,39 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
             }
             break;
         case 'K': 
-            if(sizeOfBuffer >= 3){
-                char rawMessage[7];
-                rawMessage[0] = 'P';
-                rawMessage[1] = playerId;
-                rawMessage[2] = '-';
-                rawMessage[3] = '1';
-                rawMessage[4] = '-';
-                rawMessage[5] = '1';
-                rawMessage[6] = '\n';
-                (*players)[clientFd].setX(-1);
-                (*players)[clientFd].setY(-1);
-               
-                Message mg(7, rawMessage, 0, clientFd);
-                hdList->push_back(mg);
+            if(sizeOfBuffer >= 2){
+                // int killerId = toInt(buffer[1]);
+                // Player killer = findPlayerById(players, killerId);
+                // (*players)[killer.getFd()].addPoint();
 
-                int killerId = toInt(buffer[1]);
-                Player killer = findPlayerById(players, killerId);
-                (*players)[killer.getFd()].addPoint();
-
-        
-                sendPoints((*players)[killer.getFd()].getCharId(), killer.getPoints(), hdList);
+                // sendPoints((*players)[killer.getFd()].getCharId(), (*players)[killer.getFd()].getPoints(), hdList);
             }
             break;
         case 'G': 
             (*players)[clientFd].ready();
+            if(remainingTime > 0){
+                generatePlyersPosition(players, (*gs), map, clientFd); //get map from local, not global
+
+                //send start signal
+                char rawMessage[2];
+                rawMessage[0] = 'S';
+                rawMessage[1] = '\n';
+                Message mg(2, rawMessage, clientFd, 0);
+                hdList->push_back(mg);
+
+                // send map sizes
+                sendMapSies((*gs), hdList, 0);
+
+                //send map 
+                char *parsedMap = convertToOneDimension(map, (*gs));
+                Message mg2(strlen(parsedMap), parsedMap, clientFd, 0);
+                hdList->push_back(mg2);
+
+                //send players positions
+                sendPlyersPositions(hdList, players);
+
+                sendTime(remainingTime, hdList, clientFd);
+            }
             break;
         case 'T': 
             if(sizeOfBuffer >= 3){
@@ -212,6 +208,8 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
             break;
     }
 }
+
+// int validateName
 
 int validatePosition(int f, int ogr){
     if(f < 0) return validatePosition(f + 1, ogr);
@@ -242,16 +240,10 @@ void generatePlyersPositions(std::map < int, Player>* players, GameSettings gs, 
 
 	for(std::map<int, Player>::iterator player = players->begin(); player != players->end(); ++player){
         Player pl = player->second;
-        while(1) {
-            int tokenX = rand() % gs.mapX;
-            int tokenY = rand() % gs.mapY;
-            if(map[tokenX][tokenY] == '0' && (tokenX*tokenY)%2 != 1){
-                map[tokenX][tokenY] == 'X';
-                (*players)[pl.getFd()].setX(tokenX);
-                (*players)[pl.getFd()].setY(tokenY);
-                break;
-            }
-        }
+        generatePlyersPosition(players,gs, map, player->first);
+        int x = (*players)[player->first].getIntX();
+        int y = (*players)[player->first].getIntY();
+        map[x][y] == 'X'; 
     }
 
     // remove X
@@ -260,6 +252,19 @@ void generatePlyersPositions(std::map < int, Player>* players, GameSettings gs, 
             if(map[i][j] == 'X') map[i][j] = '0';
         }
     }     
+}
+
+void generatePlyersPosition(std::map < int, Player>* players, GameSettings gs, char** map, int clientFd){
+    Player pl = (*players)[clientFd];
+    while(1) {
+        int tokenX = rand() % gs.mapX;
+        int tokenY = rand() % gs.mapY;
+        if(map[tokenX][tokenY] == '0' && (tokenX*tokenY)%2 != 1){
+            (*players)[clientFd].setX(tokenX);
+            (*players)[clientFd].setY(tokenY);
+            break;
+        }
+    }
 }
 
 
