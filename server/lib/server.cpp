@@ -2,7 +2,9 @@
 #include "Helpers.hpp"
 
 void removeClient(int clientFd, std::map<int, Player> &players){
-	printf("removing %d\n", clientFd);
+    // char *prt = {'r', 'e', 'm', 'o', 'v', 'i', 'n', 'g', toChar1(clientFd)};
+    // printToConsole(&hdList, prt, strlen(prt));
+	// printf("removing %d\n", clientFd);
 	players.erase(clientFd);
 	close(clientFd);
 }
@@ -23,13 +25,13 @@ void setReuseAddr(int sock){
 void sendToOne(const char * buffer, int count, int clientFd){
     if(write(clientFd, buffer, count) == count) {
         if((int)buffer[0] >= 48 && (int)buffer[0] <=57) return; // not display pings
-        printf("Message to %d: %s\n", clientFd, buffer);
+        // printf("Message to (fd) %d: %s", clientFd, buffer);
     }
 }
 void sendToAll(const char * buffer, int count, std::map<int, Player> players){
     for(std::map<int, Player>::iterator player = players.begin(); player != players.end(); ++player){
         if(write(player->first, buffer, count) == count){
-            printf("Message to all %s\n", buffer);
+            // printf("Message to (id) %d: %s", player->second.getId(), buffer);
         }
     }
 }
@@ -39,28 +41,17 @@ void sendToAlmostAll(const char * buffer, int count, std::map<int, Player> playe
         int clientFd = player->first;
         if(skipFd == clientFd) continue;
         if(write(clientFd, buffer, count) == count){
-            printf("Message to all %s but not %d\n", buffer, clientFd);
+            // printf("Message to (id) %d: %s", player->second.getId(), buffer);
         }
     }
 }
 
-// std::map<int, Player> checkConnections(std::map<int, Player> players){
-//     char message[2] = {'C', '\n'};
-//     return sendToAll(message, 2, players);
-// }
-
-// void sendPing(int clientFd){
-//     if(write(clientFd, buffer, count) == count) {
-//         printf("Message to %d: %s\n", clientFd, buffer);
-//     }
-// }
-
 uint16_t getPortNumber(int defaultPort, int argc, char **argv){
     if(argc < 2) {
-        printf( "Run with default port %d\n\n", defaultPort);
+        printf( "Run with default port %d\n", defaultPort);
         return defaultPort;
     } else {
-		printf( "Run with port %s\n\n", argv[1]);
+		printf( "Run with port %s\n", argv[1]);
         return readPort(argv[1]);    
     }
 }

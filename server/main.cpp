@@ -35,7 +35,8 @@ int debugMode = 0;
 
 int main(int argc, char ** argv){
 	if(argc > 2 && argv[2][0] == 'd'){
-		printf("Run with debug mode\n\n");
+		// char *prt = "Run with debug mode\n";
+		// printToConsole(&hdList, prt, 20);   
 		debugMode = 1;
 	}
 
@@ -80,7 +81,7 @@ int main(int argc, char ** argv){
 				char connectedChar[2] = {'O', '\n'};
 				Message mg(2, connectedChar, clientFd, 0);
 				hdList.push_back(mg);
-				printf("%s\n", mg.getContent());
+				// printf("%s\n", mg.getContent());
 
 				continue;
 			}
@@ -88,20 +89,15 @@ int main(int argc, char ** argv){
 			int clientFd = events[i].data.fd;
 
 			if( events[i].events == EPOLLIN) {
-				printf("%d", clientFd);
+				// printf("%d", clientFd);
 				char buffer[READ_BUFFER];
 				int count = read(clientFd, buffer, READ_BUFFER);
 				if (count > 0) {
-					if(debugMode) printf("Message from clientFd: %d: %s\n",clientFd, buffer);
-
 					receivePing(buffer, &players, clientFd, &hdList);
 					handlePlayersMsg(&hdList, map, buffer, clientFd, &players, &gameSettings, remainingTime);
-
 				}  
 			}
-
 		}
-
     }
 }
 
@@ -153,7 +149,9 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 			if(std::time(0) - player.getLastSeen() >= MAX_LATENCY){
 				char rawMessage[3] = {'R', player.getCharId(), '\n'};
 				Message mg(3, rawMessage, 0, 0);
-				printf("removing %d\n", player.getFd());
+
+				// char *prt = {'r', 'e', 'm', 'o', 'v', 'i', 'n', 'g', player.getCharId()};
+				// printToConsole(&hdList, prt, strlen(prt));   
 				playersMap.erase(player.getFd());
 				close(player.getFd());
         		list.push_back(mg);
@@ -234,9 +232,9 @@ void sender(std::list<Message>& list, std::map < int, Player> &playersMap){
 				} else{
 					sendToAll(msg.getContent(), msg.getLength(), playersMap);
 				}
-				if(msg.getContent()[0] == 'S') sleep(5);
+				if(msg.getContent()[0] == 'S') sleep(1);
 			}
 		}
-		sleep(0.05);
+		sleep(0.1);
 	}
 }

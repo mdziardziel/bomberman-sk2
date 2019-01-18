@@ -28,6 +28,6 @@ add_subdirectory (lib)
 # add executable 
 add_executable(bin/BombermanServer main.cpp)
 target_link_libraries(bin/BombermanServer Threads::Threads)
-target_link_libraries (bin/BombermanServer Engine)
 target_link_libraries (bin/BombermanServer Helpers)
+target_link_libraries (bin/BombermanServer Engine)
 target_link_libraries (bin/BombermanServer Server)

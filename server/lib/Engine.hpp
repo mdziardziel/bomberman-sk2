@@ -11,6 +11,7 @@
 #include <string>
 #include <stdlib.h>
 #include <time.h>
+
 // #include <time.h>
 
 struct GameSettings{
@@ -152,6 +153,9 @@ void sendPlayerPosition(char playerId, char* x, char* y, std::list<Message> *lis
 void sendPlyersPositions(std::list<Message> *list, std::map < int, Player>* players);
 
 void generatePlyersPositions(std::map < int, Player>* players, GameSettings gs, char** map);
+
+// void printToConsole( std::list<Message>* list, char *arr, int len);
+
 
 
 

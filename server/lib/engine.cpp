@@ -2,6 +2,10 @@
 #include "Helpers.hpp"
 #include "Server.hpp"
 
+// void printToConsole(std::list<Message>* list, char *arr, int len){
+// 	Message mg(len, arr, 1, 0);
+// 	list->push_back(mg);
+// }
 
 
 void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int clientFd, std::map < int, Player>* players, GameSettings *gs, int remainingTime){
@@ -165,7 +169,6 @@ void generatePlyersPositions(std::map < int, Player>* players, GameSettings gs, 
         while(1) {
             int tokenX = rand() % gs.mapX;
             int tokenY = rand() % gs.mapY;
-            printf("random: %d, %d\n", tokenX, tokenY);
             if(map[tokenX][tokenY] == '0' && (tokenX*tokenY)%2 != 1){
                 map[tokenX][tokenY] == 'X';
                 (*players)[pl.getFd()].setX(tokenX);
@@ -267,8 +270,8 @@ void sendLowerNames(std::map < int, Player> *players, int clientFd, std::list<Me
 
 void receivePing(char *buffer, std::map < int, Player> *players, int clientFd, std::list<Message> *hdList){
     char charId = (*players)[clientFd].getCharId();
-    if(buffer[0] == charId) {
-        char rawMessage[2] = {charId, '\n'};
+    if((int)buffer[0] <= 57 && (int)buffer[0] >= 48) {
+        char rawMessage[2] = {buffer[0], '\n'};
         std::time_t t = std::time(0); 
         (*players)[clientFd].setLastSeen(t);
 

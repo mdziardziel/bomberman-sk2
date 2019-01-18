@@ -1,4 +1,6 @@
 #include "Helpers.hpp"
+
+
 char * toChar(int x) {
     int len =  snprintf(nullptr, 0, "%d", x);
     char * str = new char[len];
