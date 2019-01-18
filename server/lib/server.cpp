@@ -22,6 +22,7 @@ void setReuseAddr(int sock){
 
 void sendToOne(const char * buffer, int count, int clientFd){
     if(write(clientFd, buffer, count) == count) {
+        if((int)buffer[0] >= 48 && (int)buffer[0] <=57) return; // not display pings
         printf("Message to %d: %s\n", clientFd, buffer);
     }
 }

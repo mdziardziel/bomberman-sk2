@@ -5,6 +5,7 @@
 #include <thread>
 #include <unistd.h>
 #include <atomic>
+#include <stdio.h>
 
 
 //TODO move to server.hpp
@@ -23,6 +24,7 @@ int lastId = -1;
 int remainingTime = 0;
 GameSettings gameSettings, gs;
 
+void debugger(std::list<Message>& list);
 void timer(std::list<Message>& list, std::map < int, Player>& players, int &remainingTime, GameSettings &gameSettings);
 void sender(std::list<Message>& list, std::map < int, Player>& players);
 std::atomic<bool> done(false);
@@ -36,6 +38,8 @@ int main(int argc, char ** argv){
 		printf("Run with debug mode\n\n");
 		debugMode = 1;
 	}
+
+	std::thread debugerThread(debugger, std::ref(hdList));
 	std::thread timerThread(timer, std::ref(hdList), std::ref(players), std::ref(remainingTime), std::ref(gameSettings));
 	std::thread senderThread(sender, std::ref(hdList), std::ref(players));
 
@@ -61,7 +65,6 @@ int main(int argc, char ** argv){
 	//game
 	map = new char *[X_FIELDS];
 	for (int i = 0; i < X_FIELDS; i++) map[i] = new char[Y_FIELDS];
-	generateMap(map, gameSettings, gs.mapX+gs.mapY);
 	
     while(true){
 		int resultCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
@@ -85,6 +88,7 @@ int main(int argc, char ** argv){
 			int clientFd = events[i].data.fd;
 
 			if( events[i].events == EPOLLIN) {
+				printf("%d", clientFd);
 				char buffer[READ_BUFFER];
 				int count = read(clientFd, buffer, READ_BUFFER);
 				if (count > 0) {
@@ -117,6 +121,23 @@ void ctrl_c(int ){
 }
 //**********************
 
+void debugger(std::list<Message>& list){
+	while(!done.load()){
+		char str[250];
+		// int i;
+		scanf("%s", str);
+		int i = strlen(str);
+
+		char rawMessage[i+1];
+		for(int j = 0; j < i; j++) rawMessage[j] = str[j];
+		rawMessage[i] = '\n';
+
+		Message mg(i+1, rawMessage, 0, 0);
+		list.push_back(mg);
+	}
+}
+
+
 void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &remainingTime, GameSettings &gameSettings){
 	int roundStartTime;
 	while(!done.load()){
@@ -144,7 +165,12 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 
 		//start game when every are ready
 		if(numPlayers == readyPlayers && numPlayers >= MIN_PLAYERS && remainingTime <= 0){
+			generateMap(map, gameSettings, gs.mapX+gs.mapY);
+			// printf("lalalallalalal\n");
 			remainingTime = gameSettings.time;
+
+			// generate players positions
+			generatePlyersPositions(&players, gameSettings, map); //get map from local, not global
 
 			//send start signal
 			char rawMessage[2];
@@ -153,11 +179,17 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 			Message mg(2, rawMessage, 0, 0);
 			list.push_back(mg);
 
+			// send map sizes
+			sendMapSies(gameSettings, &list, 0);
+
 			//send map 
 			char *parsedMap = convertToOneDimension(map, gameSettings);
-			Message mg2(sizeof(parsedMap), parsedMap, 0, 0);
+			Message mg2(strlen(parsedMap), parsedMap, 0, 0);
 			sendTime(remainingTime, &hdList, 0);
 			hdList.push_back(mg2);
+
+			//send players positions
+			sendPlyersPositions(&list, &playersMap);
 
 			sendTime(remainingTime, &list, 0);
 			roundStartTime = std::time(0);
@@ -202,8 +234,9 @@ void sender(std::list<Message>& list, std::map < int, Player> &playersMap){
 				} else{
 					sendToAll(msg.getContent(), msg.getLength(), playersMap);
 				}
+				if(msg.getContent()[0] == 'S') sleep(5);
 			}
 		}
-		sleep(0.25);
+		sleep(0.05);
 	}
 }

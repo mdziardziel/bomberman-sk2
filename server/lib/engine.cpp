@@ -11,21 +11,20 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
     size_t sizeOfBuffer = strlen(buffer);
 
     char playerId = (*players)[clientFd].getCharId();
-    // printf("%c \n", playerId);
+
     switch(move) {
         case 'B': // set bomb
             if(sizeOfBuffer >= 5){
-                // printf("11111\n");
                 char rawMessage[7];
-                // printf("222222\n");
+
                 char x[2] = { buffer[1], buffer[2] };
                 char y[2] = { buffer[3], buffer[4] };
                 int xI = toInt(x);
                 int yI = toInt(y);
                 if(xI >= gs->mapX || yI >= gs->mapY) return;
-                // printf("33333  %d %d\n");
+
                 map[toInt(x)][toInt(y)] = 'o';
-                // printf("444444\n");
+
                 rawMessage[0] = 'B';
                 rawMessage[1] = playerId;
                 rawMessage[2] = buffer[1];
@@ -33,7 +32,7 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
                 rawMessage[4] = buffer[3];
                 rawMessage[5] = buffer[4];
                 rawMessage[6] = '\n';
-                // printf("555555\n");
+
                 (*players)[clientFd].setX(x);
                 (*players)[clientFd].setY(y);
 
@@ -43,21 +42,13 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
             break;
         case 'P': //move to other place
             if(sizeOfBuffer >= 5){
-                char rawMessage[7];
-                rawMessage[0] = 'P';
-                rawMessage[1] = playerId;
-                rawMessage[2] = buffer[1];
-                rawMessage[3] = buffer[2];
-                rawMessage[4] = buffer[3];
-                rawMessage[5] = buffer[4];
-                rawMessage[6] = '\n';
-                char x[2] = { buffer[1], buffer[2] };
-                char y[2] = { buffer[3], buffer[4] };
+                char x[2] = {buffer[1], buffer[2]};
+                char y[2] = {buffer[3], buffer[4]};
+
+                sendPlayerPosition(playerId, x, y, hdList, clientFd);
+                
                 (*players)[clientFd].setX(x);
                 (*players)[clientFd].setY(y);
-                
-                Message mg(7, rawMessage, 0, clientFd);
-                hdList->push_back(mg);
             } 
             break;
         case 'F':  //set map size
@@ -148,9 +139,6 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
             break;
         case 'G': 
             (*players)[clientFd].ready();
-            // players[clientFd].ready();
-            // printf("ready: %d\n", player.isReady());
-            // players = checkConnections(players); // sent control message to check if everyone is still connected
             break;
         case 'T': 
             if(sizeOfBuffer >= 3){
@@ -166,6 +154,47 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
                 hdList->push_back(mg);
             }
             break;
+    }
+}
+
+void generatePlyersPositions(std::map < int, Player>* players, GameSettings gs, char** map){
+    srand (time(NULL));
+
+	for(std::map<int, Player>::iterator player = players->begin(); player != players->end(); ++player){
+        Player pl = player->second;
+        while(1) {
+            int tokenX = rand() % gs.mapX;
+            int tokenY = rand() % gs.mapY;
+            printf("random: %d, %d\n", tokenX, tokenY);
+            if(map[tokenX][tokenY] == '0' && (tokenX*tokenY)%2 != 1){
+                map[tokenX][tokenY] == 'X';
+                (*players)[pl.getFd()].setX(tokenX);
+                (*players)[pl.getFd()].setY(tokenY);
+                break;
+            }
+        }
+    }
+}
+
+
+void sendPlayerPosition(char playerId, char* x, char* y, std::list<Message> *list, int fd){
+    char rawMessage[7];
+    rawMessage[0] = 'P';
+    rawMessage[1] = playerId;
+    rawMessage[2] = x[0];
+    rawMessage[3] = x[1];
+    rawMessage[4] = y[0];
+    rawMessage[5] = y[1];
+    rawMessage[6] = '\n';
+    
+    Message mg(7, rawMessage, 0, fd);
+    list->push_back(mg);
+}
+
+void sendPlyersPositions(std::list<Message> *list, std::map < int, Player>* players){
+	for(std::map<int, Player>::iterator player = players->begin(); player != players->end(); ++player){
+        Player pl = player->second;
+        sendPlayerPosition(pl.getCharId(), pl.getX(), pl.getY(), list, 0);
     }
 }
 
@@ -274,13 +303,14 @@ void generateMap(char **map, GameSettings gs, int boxes){
 char* convertToOneDimension(char **map, GameSettings gs){
     int x = gs.mapX;
     int y = gs.mapY;
-    int size = x*y + 1;
+    int size = x*y + 2;
     char *oneDimension = new char[size];
     for (int i = 0; i < x; i++){
         for (int j = 0; j < y; j++) {
-            oneDimension[i*x+j] = map[i][j];
+            oneDimension[i*x+j + 1] = map[i][j];
         }
     } 
+    oneDimension[0] = 'M';
     oneDimension[size-1] = '\n';
     return oneDimension;
 }

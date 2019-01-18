@@ -9,6 +9,8 @@
 #include <list>
 #include "Helpers.hpp"
 #include <string>
+#include <stdlib.h>
+#include <time.h>
 // #include <time.h>
 
 struct GameSettings{
@@ -146,6 +148,12 @@ void receivePing(char *buffer, std::map < int, Player> *players, int clientFd, s
 void sendTime(int remainingTime, std::list<Message> *list, int clientFd);
 void sendPoints(char id, int ptsInt, std::list<Message> *list);
 void sendMapSies(GameSettings gs, std::list<Message> *list, int fd);
+void sendPlayerPosition(char playerId, char* x, char* y, std::list<Message> *list, int fd);
+void sendPlyersPositions(std::list<Message> *list, std::map < int, Player>* players);
+
+void generatePlyersPositions(std::map < int, Player>* players, GameSettings gs, char** map);
+
+
 
 
 #endif
