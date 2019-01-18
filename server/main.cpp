@@ -20,7 +20,6 @@ epoll_event event, events[MAX_EVENTS];
 //game
 char **map;
 std::map < int, Player> players;
-int lastId = -1;
 int remainingTime = 0;
 GameSettings gameSettings, gs;
 
@@ -75,8 +74,10 @@ int main(int argc, char ** argv){
 				int clientFd = connectNewClient(event, listenSock, epollFd);
 				if(clientFd == -1) continue;
 
-				Player player(clientFd, ++lastId);
+				Player player(clientFd, getLastId(&players));
 				players[clientFd] = player;
+
+				printf("%d\n", player.getId());
 
 				char connectedChar[2] = {'O', '\n'};
 				Message mg(2, connectedChar, clientFd, 0);
@@ -138,23 +139,28 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 	int roundStartTime;
 	while(!done.load()){
 	
-		sleep(0.5);
+		sleep(2);
 		int numPlayers = 0;
 		int readyPlayers = 0;
 
 		for(std::map<int, Player>::iterator playerMap = playersMap.begin(); playerMap != playersMap.end(); ++playerMap){
 			Player player = playerMap->second;
-
+								// printf("id %c\n", player.getCharId());
 			//remove player when not responds
 			if(std::time(0) - player.getLastSeen() >= MAX_LATENCY){
 				char rawMessage[3] = {'R', player.getCharId(), '\n'};
 				Message mg(3, rawMessage, 0, 0);
+				list.push_back(mg);
 
-				// char *prt = {'r', 'e', 'm', 'o', 'v', 'i', 'n', 'g', player.getCharId()};
-				// printToConsole(&hdList, prt, strlen(prt));   
-				playersMap.erase(player.getFd());
+				printf("remove fd: %d\n", player.getFd());
 				close(player.getFd());
-        		list.push_back(mg);
+				int id = player.getId();
+				playersMap.erase(player.getFd());
+
+				// maybe some lock
+				reuseId(&playersMap, id);
+				// printf("last id %d\n", getLastId(&playersMap));
+				break;
 			} 
 
 			if(player.isReady()){readyPlayers++;}
@@ -168,7 +174,7 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 			remainingTime = gameSettings.time;
 
 			// generate players positions
-			generatePlyersPositions(&players, gameSettings, map); //get map from local, not global
+			generatePlyersPositions(&playersMap, gameSettings, map); //get map from local, not global
 
 			//send start signal
 			char rawMessage[2];
@@ -234,6 +240,7 @@ void sender(std::list<Message>& list, std::map < int, Player> &playersMap){
 				}
 				if(msg.getContent()[0] == 'S') sleep(1);
 			}
+			sleep(0.05);
 		}
 		sleep(0.1);
 	}

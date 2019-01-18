@@ -161,6 +161,24 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
     }
 }
 
+void reuseId(std::map < int, Player>* players, int id){
+    int n = getLastId(players);
+
+    if(id == getLastId(players)) return ;
+
+    for(std::map<int, Player>::iterator player = players->end(); player != players->begin(); --player){
+         if(player->second.getId() == id + 1){
+             (*players)[player->second.getFd()].setId(id);
+             reuseId(players, id+1);
+             return;
+         }
+     }
+}
+
+int getLastId(std::map < int, Player>* players){
+    return players->size();
+}
+
 void generatePlyersPositions(std::map < int, Player>* players, GameSettings gs, char** map){
     srand (time(NULL));
 
