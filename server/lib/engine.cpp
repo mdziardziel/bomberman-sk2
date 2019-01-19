@@ -124,7 +124,7 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
                     if(validateName(players, name, leng) == 0){
                         // send reject
                         char tmp2[2];
-                        tmp2[0] = 'R';
+                        tmp2[0] = 'U';
                         tmp2[1] = '\n';
                         Message mg2(2, tmp2, clientFd, 0);   
                         hdList->push_back(mg2);  
