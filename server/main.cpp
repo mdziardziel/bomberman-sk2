@@ -150,6 +150,10 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 			// printf("id %c\n", player.getCharId());
 			// if(debugMode) printf("3 (%.*s) %d %s\n",  player.getName());
 			//remove player when not responds
+			// printf("\n");
+			// if(debugMode){
+				// printf("ID: %d, FD: %d, NAME: %s\n", player.getId(), player.getFd(), player.getName());
+			// }
 			
 			if(std::time(0) - player.getLastSeen() >= MAX_LATENCY){
 				// if(debugMode) printf("4 (%.*s) %d %s\n",  player.getName());
