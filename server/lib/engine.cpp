@@ -121,6 +121,16 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
                     }
                     rawMessage[leng + 4] = '\n';
                     rawMessage[0] = 'N';
+                    if(validateName(players, name, leng) == 0){
+                        // send reject
+                        char tmp2[2];
+                        tmp2[0] = 'R';
+                        tmp2[1] = '\n';
+                        Message mg2(2, tmp2, clientFd, 0);   
+                        hdList->push_back(mg2);  
+                        break;                  
+                    }
+
                     (*players)[clientFd].setName(name, leng);
 
                     // send confirmtion
@@ -159,11 +169,23 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
             break;
         case 'K': 
             if(sizeOfBuffer >= 2){
-                // int killerId = toInt(buffer[1]);
-                // Player killer = findPlayerById(players, killerId);
-                // (*players)[killer.getFd()].addPoint();
+                int killerId = (int)buffer[1] - 48;
+                int killerFd = findFdById(players, killerId);
+                if(killerFd == -1) break;
+                (*players)[killerFd].addPoint();
 
-                // sendPoints((*players)[killer.getFd()].getCharId(), (*players)[killer.getFd()].getPoints(), hdList);
+                //send killed id
+                char rawMessage[3];
+                rawMessage[0] = 'K';
+                rawMessage[1] = (*players)[clientFd].getCharId();
+                rawMessage[2] = '\n';
+                Message mg(3, rawMessage, 0, clientFd);
+                hdList->push_back(mg);
+
+                                printf("%s\n",rawMessage);
+
+                printf("fd: %d, id: %d, points: %d\n",killerFd, killerId, (*players)[killerFd].getPoints());
+                sendPoints((*players)[killerFd].getCharId(), (*players)[killerFd].getPoints(), hdList);
             }
             break;
         case 'G': 
@@ -207,6 +229,21 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
             }
             break;
     }
+}
+
+int validateName(std::map < int, Player>* players, char *name, int len){
+    for(std::map<int, Player>::iterator player = players->begin(); player != players->end(); ++player){
+        Player pl = player->second;
+        char *tmpName = pl.getName();
+        if(pl.getNameSize() != len) continue;
+        int i;
+        for(i = 0; i < len; i++){
+            if(tmpName[i] != name[i]) break;
+        }
+        if(i == len) return 0;
+    }
+
+    return 1;
 }
 
 // int validateName
@@ -306,6 +343,7 @@ void sendMapSies(GameSettings gs, std::list<Message> *list, int fd){
 
 
 void sendPoints(char id, int ptsInt, std::list<Message> *list){
+    // printf("%c, %d", id, ptsInt);
     char *pts = toChar3(ptsInt);
     char rawMessage2[6];
     rawMessage2[0] = 'A';
@@ -368,13 +406,14 @@ void receivePing(char *buffer, std::map < int, Player> *players, int clientFd, s
     }
 }
 
-Player findPlayerById(std::map<int, Player> *players, int id){
+int findFdById(std::map<int, Player> *players, int id){
     for(std::map<int, Player>::iterator player = players->begin(); player != players->end(); ++player){
         int playerId = player->second.getId();
         if(playerId == id){
-             return player->second; 
+             return player->first; 
         }
     }
+    return -1;
 }
 
 char* generateWritableMap(char ** map, GameSettings gs, int boxes){

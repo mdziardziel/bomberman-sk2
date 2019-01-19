@@ -94,7 +94,7 @@ int main(int argc, char ** argv){
 				char buffer[READ_BUFFER];
 				int count = read(clientFd, buffer, READ_BUFFER);
 				if (count > 0) {
-					// if(debugMode) printf("1 (%.*s) %d %s\n", count, buffer, clientFd, players[clientFd].getName());
+					if(debugMode && ((int)buffer[0] > 57 || (int)buffer[0] < 48)) printf("RECEIVE %d (%.*s)\n", count, clientFd,  buffer);
 					receivePing(buffer, &players, clientFd, &hdList);
 					handlePlayersMsg(&hdList, map, buffer, clientFd, &players, &gameSettings, remainingTime);
 					// if(debugMode) printf("2 (%.*s) %d %s\n", count, buffer, clientFd, players[clientFd].getName());
@@ -211,7 +211,14 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 			
 			// time ends
 			if(rt <= 0){
+				//send end signal
+				char rawMessage[2];
+				rawMessage[0] = 'X';
+				rawMessage[1] = '\n';
+				Message mg(2, rawMessage, 0, 0);
+				list.push_back(mg);
 				roundStartTime = 0;
+
 				//set players as not ready
 				for(std::map<int, Player>::iterator playerMap = playersMap.begin(); playerMap != playersMap.end(); ++playerMap){
 					Player player = playerMap->second;
@@ -236,6 +243,7 @@ void sender(std::list<Message>& list, std::map < int, Player> &playersMap){
 			Message msg = list.front();
 			list.pop_front();
 			if(msg.getLength() > 0){
+				if(debugMode && ((int)msg.getContent()[0] > 57 || (int)msg.getContent()[0] < 48)) printf("SEND %d %d (%.*s)\n", msg.getLength(), msg.getFd(),msg.getLength(),  msg.getContent());
 				if(msg.getFd()){
 					sendToOne(msg.getContent(), msg.getLength(), msg.getFd());
 				} else if(msg.getSkipFd()) {

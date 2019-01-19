@@ -150,7 +150,7 @@ void insertBoxes(char **map, int number, GameSettings gs);
 void resetMap(char **map, GameSettings gs);
 char * addPlayer(std::map < int, char* > players, int lastId, int clientFd);
 void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int clientFd, std::map < int, Player>* players, GameSettings *gameSettings, int remainingTime);
-Player findPlayerById(std::map<int, Player> *players, int id);
+int findFdById(std::map<int, Player> *players, int id);
 void sendLowerNames(std::map < int, Player> *players, int clientFd, std::list<Message> *hdList);
 void receivePing(char *buffer, std::map < int, Player> *players, int clientFd, std::list<Message> *hdList);
 void sendTime(int remainingTime, std::list<Message> *list, int clientFd);
@@ -164,6 +164,7 @@ int getLastId(std::map < int, Player>* players);
 void reuseId(std::map < int, Player>* players, int id);
 int validatePosition(int f, int ogr);
 void generatePlyersPosition(std::map < int, Player>* players, GameSettings gs, char** map, int clientFd);
+int validateName(std::map < int, Player>* players, char *name, int len);
 
 
 // void printToConsole( std::list<Message>* list, char *arr, int len);
