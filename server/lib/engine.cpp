@@ -151,23 +151,10 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
                     
                     hdList->push_back(mg2);
                     hdList->push_back(mg3);
-                    printf("1111 XDDD\n");
                     sendLowerNames(players, clientFd, hdList);
-                    printf("2222 XDDD\n");
                     hdList->push_back(mg);
 
-                    // send game state if started
-                    // if(remainingTime > 0){
-                    //     sendMapSies((*gs), hdList, clientFd);
-
-                    //     char *parsedMap = convertToOneDimension(map, (*gs));
-                    //     Message mg1(strlen(parsedMap), parsedMap, clientFd, 0);
-                    //     hdList->push_back(mg1);
-
-                    //     sendPlyersPositions(hdList, players);
-
-                    //     sendTime(remainingTime, hdList, clientFd);
-				    // }
+                    sendAllPlayersState(hdList, players);
                 }
             }
             break;
@@ -186,24 +173,18 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
                 Message mg(3, rawMessage, 0, clientFd);
                 hdList->push_back(mg);
 
-                                printf("%s\n",rawMessage);
-
-                printf("fd: %d, id: %d, points: %d\n",killerFd, killerId, (*players)[killerFd].getPoints());
                 sendPoints((*players)[killerFd].getCharId(), (*players)[killerFd].getPoints(), hdList);
             }
             break;
         case 'G': 
-            if(sizeOfBuffer >= 1){
-                (*players)[clientFd].ready();
+            if(sizeOfBuffer >= 2){
+                char state = buffer[1];
+                if(state == '1') (*players)[clientFd].ready();
+                if(state == '0') (*players)[clientFd].notReady();
 
-                // char rawMessage3[3];
-                // rawMessage3[0] = 'G';
-                // rawMessage3[1] = (*players)[clientFd].getCharId();
-                // rawMessage3[2] = '\n';
-                // Message mg3(3, rawMessage3, 0, clientFd);
-                // hdList->push_back(mg3);
+                sendPlayerStateToAll(state, clientFd, hdList, players);
 
-                if(remainingTime > 0){
+                if(remainingTime > 0 && state == '1'){
                     generatePlyersPosition(players, (*gs), map, clientFd); //get map from local, not global
 
                     //send start signal
@@ -223,7 +204,6 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
 
                     //send players positions
                     sendPlyersPositions(hdList, players);
-
                     sendTime(remainingTime, hdList, clientFd);
                 }
             }
@@ -243,6 +223,50 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
             }
             break;
     }
+}
+
+void sendAllPlayersState(std::list<Message>* hdList, std::map < int, Player>* players){
+    for(std::map<int, Player>::iterator playerMap = (*players).begin(); playerMap != (*players).end(); ++playerMap){
+        Player player = playerMap->second;
+        sendPlayerStateToAll(player.getState(), player.getFd(), hdList, players);
+    }
+}
+
+void sendPlayerStateToAll(char state, int clientFd, std::list<Message>* hdList, std::map < int, Player>* players){
+    char rawMessage3[4];
+    rawMessage3[0] = 'G';
+    rawMessage3[1] = (*players)[clientFd].getCharId();
+    rawMessage3[2] = state;
+    rawMessage3[3] = '\n';
+    Message mg3(4, rawMessage3, 0, clientFd);
+    hdList->push_back(mg3);
+}
+
+void sendPointsToAll(std::map < int, Player>* players, std::list<Message>* hdList){
+    for(std::map<int, Player>::iterator playerMap = (*players).begin(); playerMap != (*players).end(); ++playerMap){
+        Player player = playerMap->second;
+        sendPoints(player.getCharId(), player.getPoints(), hdList);
+    }
+}
+
+void updatePlayersStateAfterRound(std::map < int, Player>* players, std::list<Message>* hdList){
+    for(std::map<int, Player>::iterator playerMap = (*players).begin(); playerMap != (*players).end(); ++playerMap){
+        Player player = playerMap->second;
+        (*players)[player.getFd()].notReady();
+        (*players)[player.getFd()].resetPoints();
+    }
+}
+
+int getWinner(std::map < int, Player>* players){
+    int bestPts = 0;
+    int bestFd = -1;
+    for(std::map<int, Player>::iterator player = players->begin(); player != players->end(); ++player){
+        if(player->second.getPoints() >= bestPts){
+            bestPts = player->second.getPoints();
+            bestFd =  player->second.getFd();
+        }
+    }
+    return bestFd;
 }
 
 int validateName(std::map < int, Player>* players, char *name, int len){
@@ -358,16 +382,15 @@ void sendMapSies(GameSettings gs, std::list<Message> *list, int fd){
 
 void sendPoints(char id, int ptsInt, std::list<Message> *list){
     // printf("%c, %d", id, ptsInt);
-    char *pts = toChar3(ptsInt);
-    char rawMessage2[6];
+    char *pts = toChar2(ptsInt);
+    char rawMessage2[5];
     rawMessage2[0] = 'A';
     rawMessage2[1] = id;
     rawMessage2[2] = pts[0];
     rawMessage2[3] = pts[1];
-    rawMessage2[4] = pts[2];
-    rawMessage2[5] = '\n';
+    rawMessage2[4] = '\n';
 
-    Message mg2(6, rawMessage2, 0, 0);
+    Message mg2(5, rawMessage2, 0, 0);
     list->push_back(mg2);
 }
 
@@ -388,9 +411,7 @@ void sendTime(int remainingTime, std::list<Message> *list, int clientFd){
 }
 
 void sendLowerNames(std::map < int, Player> *players, int clientFd, std::list<Message> *hdList){
-    printf("SEND_LOWER_NAMES\n");
     for(std::map<int, Player>::iterator player = players->begin(); player != players->end(); ++player){
-        printf("SEND_LOWER_NAMES FD: %d NAME %s\n", player->second.getFd(), player->second.getName());
         if(player->second.getFd() == clientFd) continue;
         char * namePl = player->second.getName();
         int leng = player->second.getNameSize();

@@ -113,6 +113,8 @@ class Player{
     }
     int getPoints(){return points;}
 
+    char getState(){return toChar1(readyToPlay);}
+
     time_t getLastSeen(){return lastSeen;}
 
     // void setFd(int f){fd = f;}
@@ -165,6 +167,12 @@ void reuseId(std::map < int, Player>* players, int id);
 int validatePosition(int f, int ogr);
 void generatePlyersPosition(std::map < int, Player>* players, GameSettings gs, char** map, int clientFd);
 int validateName(std::map < int, Player>* players, char *name, int len);
+
+int getWinner(std::map < int, Player>* players);
+void updatePlayersStateAfterRound(std::map < int, Player>* players, std::list<Message>* hdList);
+void sendPointsToAll(std::map < int, Player>* players, std::list<Message>* hdList);
+void sendPlayerStateToAll(char state, int clientFd, std::list<Message>* hdList, std::map < int, Player>* players);
+void sendAllPlayersState(std::list<Message>* hdList, std::map < int, Player>* players);
 
 
 // void printToConsole( std::list<Message>* list, char *arr, int len);

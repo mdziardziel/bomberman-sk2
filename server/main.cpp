@@ -141,7 +141,7 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 	int roundStartTime = 0;
 	while(!done.load()){
 	
-		sleep(2);
+		sleep(1);
 		int numPlayers = 0;
 		int readyPlayers = 0;
 
@@ -208,6 +208,21 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 			roundStartTime = std::time(0);
 		}
 
+		if(getLastId(&players) <= 1 && roundStartTime > 0){
+			char rawMessage[3];
+			rawMessage[0] = 'X';
+			rawMessage[1] = '0';
+			rawMessage[3] = '\n';
+			Message mg(3, rawMessage, 0, 0);
+			list.push_back(mg);
+			roundStartTime = 0;
+			rt = 0;	
+
+			updatePlayersStateAfterRound(&playersMap, &list);
+			sendPointsToAll(&playersMap, &list); 			
+			sendAllPlayersState(&list, &players);
+		}
+
 		//set remaining time
 		if(roundStartTime > 0){
 			rt = gs.time + roundStartTime -  std::time(0);
@@ -216,26 +231,21 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 			// time ends
 			if(rt <= 0){
 				//send end signal
-				char rawMessage[2];
+				int winnerFd = getWinner(&playersMap);
+				if(winnerFd == -1) continue; // maybe better?
+				char rawMessage[4];
 				rawMessage[0] = 'X';
-				rawMessage[1] = '\n';
-				Message mg(2, rawMessage, 0, 0);
+				rawMessage[1] = '1';
+				rawMessage[2] = playersMap[winnerFd].getCharId();
+				rawMessage[3] = '\n';
+				Message mg(4, rawMessage, 0, 0);
 				list.push_back(mg);
 				roundStartTime = 0;
 
 				//set players as not ready
-				for(std::map<int, Player>::iterator playerMap = playersMap.begin(); playerMap != playersMap.end(); ++playerMap){
-					Player player = playerMap->second;
-
-					playersMap[player.getFd()].notReady();
-					
-					//send points to all
-					sendPoints(player.getCharId(), player.getPoints(), &list);
-
-					//reset points
-					playersMap[player.getFd()].resetPoints();
-
-				}
+				updatePlayersStateAfterRound(&playersMap, &list);
+				sendPointsToAll(&playersMap, &list); 
+				sendAllPlayersState(&list, &players);
 			}
 		}
 	}
