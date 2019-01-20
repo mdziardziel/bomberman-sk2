@@ -33,9 +33,8 @@ std::list<Message> hdList;
 int debugMode = 1;
 
 int main(int argc, char ** argv){
+	srand (time(NULL));
 	if(argc > 2 && argv[2][0] == 'd'){
-		// char *prt = "Run with debug mode\n";
-		// printToConsole(&hdList, prt, 20);   
 		debugMode = 1;
 	}
 
@@ -74,30 +73,21 @@ int main(int argc, char ** argv){
 				int clientFd = connectNewClient(event, listenSock, epollFd);
 				if(clientFd == -1) continue;
 
-				Player player(clientFd, getLastId(&players));
-				players[clientFd] = player;
-
-				// printf("%d\n", player.getId());
-
 				char connectedChar[2] = {'O', '\n'};
 				Message mg(2, connectedChar, clientFd, 0);
 				hdList.push_back(mg);
-				// printf("%s\n", mg.getContent());
-
 				continue;
 			}
 
 			int clientFd = events[i].data.fd;
 
 			if( events[i].events == EPOLLIN) {
-				// printf("%d", clientFd);
 				char buffer[READ_BUFFER];
 				int count = read(clientFd, buffer, READ_BUFFER);
 				if (count > 0) {
-					if(debugMode && ((int)buffer[0] > 57 || (int)buffer[0] < 48)) printf("RECEIVE %d (%.*s)\n", count, clientFd,  buffer);
+					if(debugMode && ((int)buffer[0] > 57 || (int)buffer[0] < 48)) printf("RECEIVE %d (%.*s)\n", clientFd, count, buffer);
 					receivePing(buffer, &players, clientFd, &hdList);
 					handlePlayersMsg(&hdList, map, buffer, clientFd, &players, &gameSettings, remainingTime);
-					// if(debugMode) printf("2 (%.*s) %d %s\n", count, buffer, clientFd, players[clientFd].getName());
 				}  
 			}
 		}
@@ -108,6 +98,7 @@ int main(int argc, char ** argv){
 //TODO move to server.cpp
 void ctrl_c(int ){
 	for(std::map<int, Player>::iterator player = players.begin(); player != players.end(); ++player){
+		if(player->second.getId() == -1) continue;
 		printf("removing %d\n", player->first);
 		close(player->first);
 		players.erase(player->first);
@@ -140,12 +131,12 @@ void debugger(std::list<Message>& list){
 void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &rt, GameSettings &gs){
 	int roundStartTime = 0;
 	while(!done.load()){
-	
 		sleep(1);
 		int numPlayers = 0;
 		int readyPlayers = 0;
 
 		for(std::map<int, Player>::iterator playerMap = playersMap.begin(); playerMap != playersMap.end(); ++playerMap){
+			if(playerMap->second.getId() == -1) continue;
 			Player player = playerMap->second;
 			
 			if(std::time(0) - player.getLastSeen() >= MAX_LATENCY){
@@ -156,6 +147,7 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 				printf("remove fd: %d\n", player.getFd());
 				close(player.getFd());
 				int id = player.getId();
+
 				playersMap.erase(player.getFd());
 
 				// maybe some lock
@@ -169,9 +161,7 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 
 		//start game when every are ready
 		if(numPlayers == readyPlayers && numPlayers >= MIN_PLAYERS && rt <= 0){
-			printf("frfrfrflalalallalalal\n");
 			generateMap(map, gs, gs.mapX+gs.mapY);
-			printf("lalalallalalal\n");
 			rt = gs.time;
 
 			// generate players positions
@@ -183,7 +173,8 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 			rawMessage[1] = '\n';
 			Message mg(2, rawMessage, 0, 0);
 			list.push_back(mg);
-
+			sleep(4);
+			
 			// send map sizes
 			sendMapSies(gs, &list, 0);
 
@@ -210,7 +201,7 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 			rt = 0;	
 
 			updatePlayersStateAfterRound(&playersMap, &list);
-			sendPointsToAll(&playersMap, &list); 			
+			// sendPointsToAll(&playersMap, &list); 			
 			sendAllPlayersState(&list, &players);
 		}
 
@@ -234,7 +225,7 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 
 				//set players as not ready
 				updatePlayersStateAfterRound(&playersMap, &list);
-				sendPointsToAll(&playersMap, &list); 
+				// sendPointsToAll(&playersMap, &list); 
 				sendAllPlayersState(&list, &players);
 			}
 		}
@@ -247,7 +238,7 @@ void sender(std::list<Message>& list, std::map < int, Player> &playersMap){
 			Message msg = list.front();
 			list.pop_front();
 			if(msg.getLength() > 0){
-				if(debugMode && ((int)msg.getContent()[0] > 57 || (int)msg.getContent()[0] < 48)) printf("SEND %d %d (%.*s)\n", msg.getLength(), msg.getFd(),msg.getLength(),  msg.getContent());
+				// if(debugMode && ((int)msg.getContent()[0] > 57 || (int)msg.getContent()[0] < 48)) printf("SEND %d %d (%.*s)\n", msg.getLength(), msg.getFd(),msg.getLength(),  msg.getContent());
 				if(msg.getFd()){
 					sendToOne(msg.getContent(), msg.getLength(), msg.getFd());
 				} else if(msg.getSkipFd()) {
@@ -255,7 +246,7 @@ void sender(std::list<Message>& list, std::map < int, Player> &playersMap){
 				} else{
 					sendToAll(msg.getContent(), msg.getLength(), playersMap);
 				}
-				if(msg.getContent()[0] == 'S') sleep(1);
+				if(msg.getContent()[0] == 'S') sleep(0.25);
 			}
 			sleep(0.05);
 		}

@@ -24,24 +24,29 @@ void setReuseAddr(int sock){
 
 void sendToOne(const char * buffer, int count, int clientFd){
     if(write(clientFd, buffer, count) == count) {
-        if((int)buffer[0] >= 48 && (int)buffer[0] <=57) return; // not display pings
         // printf("Message to (fd) %d: %s", clientFd, buffer);
+        if((int)buffer[0] > 57 || (int)buffer[0] < 48) printf("SEND %d %d (%.*s)\n", count, clientFd,count, buffer);
+
     }
 }
 void sendToAll(const char * buffer, int count, std::map<int, Player> players){
     for(std::map<int, Player>::iterator player = players.begin(); player != players.end(); ++player){
+        if(player->second.getId() == -1) continue;
         if(write(player->first, buffer, count) == count){
             // printf("Message to (id) %d: %s", player->second.getId(), buffer);
+            if((int)buffer[0] > 57 || (int)buffer[0] < 48) printf("SEND %d %d (%.*s)\n", count, player->first,count, buffer);
+
         }
     }
 }
 
 void sendToAlmostAll(const char * buffer, int count, std::map<int, Player> players, int skipFd){
     for(std::map<int, Player>::iterator player = players.begin(); player != players.end(); ++player){
+        if(player->second.getId() == -1) continue;
         int clientFd = player->first;
         if(skipFd == clientFd) continue;
         if(write(clientFd, buffer, count) == count){
-            // printf("Message to (id) %d: %s", player->second.getId(), buffer);
+            if((int)buffer[0] > 57 || (int)buffer[0] < 48) printf("SEND %d %d (%.*s)\n", count, player->first,count, buffer);
         }
     }
 }

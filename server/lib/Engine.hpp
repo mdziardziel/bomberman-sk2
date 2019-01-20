@@ -32,6 +32,10 @@ struct GameSettings{
     char* getCharY(){
         return toChar2(mapY);
     }
+
+    void setTimeMin(int t){
+        time = t*60;
+    }
 };
 
 class Message {
@@ -78,6 +82,7 @@ class Player{
     int nameSize;
     int fd;
     time_t lastSeen;
+    int activated;
 
     public:
 
@@ -92,18 +97,20 @@ class Player{
         name = nothing;
         lastSeen = time(0);
         nameSize = 1;
+        activated = 1;
     }
     Player(){
-        fd = 0;
+        fd = -1;
         id = -1;
-        points = 0;
-        readyToPlay = 0;
+        points = -1;
+        readyToPlay = -1;
         x = -1;
         y = -1;
         char nothing[1] = {' '};
         name = nothing;
         lastSeen = time(0);
         nameSize = 1;
+        activated = 0;
     }
 
     int getFd(){
