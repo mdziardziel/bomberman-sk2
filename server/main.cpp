@@ -173,8 +173,8 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 			rawMessage[1] = '\n';
 			Message mg(2, rawMessage, 0, 0);
 			list.push_back(mg);
-			sleep(4);
-			
+			sleep(2);
+
 			// send map sizes
 			sendMapSies(gs, &list, 0);
 

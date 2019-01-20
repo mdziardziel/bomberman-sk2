@@ -199,6 +199,7 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
                     //send players positions
                     sendPlyersPositions(hdList, players);
                     sendTime(remainingTime, hdList, clientFd);
+                    sendPointsToAll(players, hdList);
                 }
             }
             break;
