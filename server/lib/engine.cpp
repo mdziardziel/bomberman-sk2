@@ -2,29 +2,20 @@
 #include "Helpers.hpp"
 #include "Server.hpp"
 
-// void printToConsole(std::list<Message>* list, char *arr, int len){
-// 	Message mg(len, arr, 1, 0);
-// 	list->push_back(mg);
-// }
-
-
 void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int clientFd, std::map < int, Player>* players, GameSettings *gs, int remainingTime){
-    // printf("%s\n", players[clientFd].getId());
-
     char move = buffer[0];
     size_t sizeOfBuffer = strlen(buffer);
-
     char playerId = (*players)[clientFd].getCharId();
 
     switch(move) {
         case 'B': // set bomb
             if(sizeOfBuffer >= 5){
                 char rawMessage[7];
-
                 char x[2] = { buffer[1], buffer[2] };
                 char y[2] = { buffer[3], buffer[4] };
                 int xI = toInt(x);
                 int yI = toInt(y);
+
                 if(xI >= gs->mapX || yI >= gs->mapY) return;
 
                 rawMessage[0] = 'B';
@@ -45,7 +36,6 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
                 int ytt = validatePosition(yI +2, gs->mapY);
                 int ybb = validatePosition(yI -2, gs->mapY);
 
-                
                 // update map
                 if(xl*yI%2 != 1){
                     if(map[xl][yI] == '1'){
@@ -75,10 +65,6 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
                         map[xI][ybb] = '0';
                     }
                 }
-
-
-                // (*players)[clientFd].setX(x);
-                // (*players)[clientFd].setY(y);
 
                 Message mg(7, rawMessage, 0, clientFd);
                 hdList->push_back(mg);
@@ -110,17 +96,21 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
             if(sizeOfBuffer >= 3){
                 char len[2] = { buffer[1], buffer[2] };
                 int leng = toInt(len);
-                char rawMessage[leng + 5];
                 if(sizeOfBuffer >= leng + 3){
+                    char rawMessage[leng+5];
                     char *name = new char[leng];
+
                     rawMessage[1] = playerId;
                     rawMessage[2] = buffer[1]; rawMessage[3] = buffer[2];
+
                     for(int i = 0; i < leng; i++) { 
                         name[i] = buffer[i+3];
                         rawMessage[i+4] = buffer[i+3];
                     }
+
                     rawMessage[leng + 4] = '\n';
                     rawMessage[0] = 'N';
+
                     if(validateName(players, name, leng) == 0){
                         // send reject
                         char tmp6[2];
@@ -211,7 +201,7 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
         case 'T': 
             if(sizeOfBuffer >= 3){
                 char time[2] = { buffer[1], buffer[2] };
-                gs->time = toInt(time[2]);
+                gs->time = toInt(time);
                 char rawMessage[4];
                 rawMessage[0] = 'T';
                 rawMessage[1] = buffer[1];
@@ -284,8 +274,6 @@ int validateName(std::map < int, Player>* players, char *name, int len){
     return 1;
 }
 
-// int validateName
-
 int validatePosition(int f, int ogr){
     if(f < 0) return validatePosition(f + 1, ogr);
     if(f >= ogr) return validatePosition(f - 1, ogr);
@@ -293,10 +281,7 @@ int validatePosition(int f, int ogr){
 }
 
 void reuseId(std::map < int, Player>* players, int id){
-    int n = getLastId(players);
-
     if(id == getLastId(players)) return ;
-
     for(std::map<int, Player>::iterator player = players->begin(); player != players->end(); ++player){
          if(player->second.getId() == id + 1){
              (*players)[player->second.getFd()].setId(id);
@@ -416,8 +401,7 @@ void sendLowerNames(std::map < int, Player> *players, int clientFd, std::list<Me
         char * namePl = player->second.getName();
         int leng = player->second.getNameSize();
 
-        char rawMessage[leng+5];//4
-        char *name = new char[leng];
+        char rawMessage[leng+5];
         rawMessage[1] = player->second.getCharId();
         char *nameSize = toChar2(leng);
         rawMessage[2] = nameSize[0]; rawMessage[3] = nameSize[1];
@@ -425,14 +409,12 @@ void sendLowerNames(std::map < int, Player> *players, int clientFd, std::list<Me
         rawMessage[leng + 4] = '\n';
         rawMessage[0] = 'N';
 
-        // printf("hej %s\n", rawMessage);
         Message mg(leng + 5, rawMessage, clientFd, 0);
         hdList->push_back(mg);
     }
 }
 
 void receivePing(char *buffer, std::map < int, Player> *players, int clientFd, std::list<Message> *hdList){
-    char charId = (*players)[clientFd].getCharId();
     if((int)buffer[0] <= 57 && (int)buffer[0] >= 48) {
         char rawMessage[2] = {buffer[0], '\n'};
         std::time_t t = std::time(0); 

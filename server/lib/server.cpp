@@ -68,7 +68,7 @@ void bindToAddressAndPort(int port, int listenSock){
 }
 
 void enterListeningMode(int listenSock){
-    if(listen(listenSock, 1)) error(1,0,"listen failed");
+    if(listen(listenSock, 9)) error(1,0,"listen failed");
 }
 
 int createEpoll(){

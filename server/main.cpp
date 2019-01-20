@@ -124,7 +124,7 @@ void debugger(std::list<Message>& list){
 	while(!done.load()){
 		char str[250];
 		// int i;
-		scanf("%s", str);
+		scanf("%30s", str);
 		int i = strlen(str);
 
 		char rawMessage[i+1];
@@ -212,7 +212,7 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 			char rawMessage[3];
 			rawMessage[0] = 'X';
 			rawMessage[1] = '0';
-			rawMessage[3] = '\n';
+			rawMessage[2] = '\n';
 			Message mg(3, rawMessage, 0, 0);
 			list.push_back(mg);
 			roundStartTime = 0;
