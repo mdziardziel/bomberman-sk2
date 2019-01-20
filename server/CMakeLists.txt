@@ -5,6 +5,7 @@ project (BombermanServer)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
+# SET(GCC_COVERAGE_COMPILE_FLAGS "-Wall")
 
 # The version number.
 set (BombermanServer_VERSION_MAJOR 1)
@@ -23,11 +24,12 @@ configure_file (
 include_directories("${PROJECT_BINARY_DIR}")
 
 include_directories ("${PROJECT_SOURCE_DIR}/lib")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "bin")
 add_subdirectory (lib) 
  
 # add executable 
-add_executable(bin/BombermanServer main.cpp)
-target_link_libraries(bin/BombermanServer Threads::Threads)
-target_link_libraries (bin/BombermanServer Helpers)
-target_link_libraries (bin/BombermanServer Engine)
-target_link_libraries (bin/BombermanServer Server)
+add_executable(BombermanServer main.cpp)
+target_link_libraries(BombermanServer Threads::Threads)
+target_link_libraries (BombermanServer Helpers)
+target_link_libraries (BombermanServer Engine)
+target_link_libraries (BombermanServer Server)
