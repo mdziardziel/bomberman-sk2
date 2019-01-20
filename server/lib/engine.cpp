@@ -201,15 +201,15 @@ void handlePlayersMsg(std::list<Message>* hdList, char **map, char *buffer, int 
         case 'T': 
             if(sizeOfBuffer >= 3){
                 char time[2] = { buffer[1], buffer[2] };
-                gs->time = toInt(time);
-                char rawMessage[4];
-                rawMessage[0] = 'T';
-                rawMessage[1] = buffer[1];
-                rawMessage[2] = buffer[2];
-                rawMessage[3] = '\n';
+                gs->time = toInt(buffer[1]);
+                // char rawMessage[4];
+                // rawMessage[0] = 'T';
+                // rawMessage[1] = buffer[1];
+                // rawMessage[2] = buffer[2];
+                // rawMessage[3] = '\n';
 
-                Message mg(4, rawMessage, 0, clientFd);
-                hdList->push_back(mg);
+                // Message mg(4, rawMessage, 0, clientFd);
+                // hdList->push_back(mg);
             }
             break;
     }

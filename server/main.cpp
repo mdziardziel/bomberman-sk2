@@ -63,8 +63,8 @@ int main(int argc, char ** argv){
 	epoll_ctl(epollFd, EPOLL_CTL_ADD, listenSock, &event);
 
 	//game
-	map = new char *[X_FIELDS];
-	for (int i = 0; i < X_FIELDS; i++) map[i] = new char[Y_FIELDS];
+	map = new char *[MAX_X_FIELDS];
+	for (int i = 0; i < MAX_X_FIELDS; i++) map[i] = new char[MAX_Y_FIELDS];
 	
     while(true){
 		int resultCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
@@ -147,17 +147,8 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 
 		for(std::map<int, Player>::iterator playerMap = playersMap.begin(); playerMap != playersMap.end(); ++playerMap){
 			Player player = playerMap->second;
-			// printf("id %c\n", player.getCharId());
-			// if(debugMode) printf("3 (%.*s) %d %s\n",  player.getName());
-			//remove player when not responds
-			// printf("\n");
-			// if(debugMode){
-				// printf("ID: %d, FD: %d, NAME: %s\n", player.getId(), player.getFd(), player.getName());
-			// }
 			
 			if(std::time(0) - player.getLastSeen() >= MAX_LATENCY){
-				// if(debugMode) printf("4 (%.*s) %d %s\n",  player.getName());
-				// printf("%s %d\n",player.getName(), playersMap.size());
 				char rawMessage[3] = {'R', player.getCharId(), '\n'};
 				Message mg(3, rawMessage, 0, 0);
 				list.push_back(mg);
@@ -169,7 +160,6 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 
 				// maybe some lock
 				reuseId(&playersMap, id);
-				// printf("last id %d\n", getLastId(&playersMap));
 				break;
 			} 
 
@@ -179,8 +169,9 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 
 		//start game when every are ready
 		if(numPlayers == readyPlayers && numPlayers >= MIN_PLAYERS && rt <= 0){
+			printf("frfrfrflalalallalalal\n");
 			generateMap(map, gs, gs.mapX+gs.mapY);
-			// printf("lalalallalalal\n");
+			printf("lalalallalalal\n");
 			rt = gs.time;
 
 			// generate players positions
@@ -226,7 +217,6 @@ void timer(std::list<Message>& list, std::map < int, Player> &playersMap, int &r
 		//set remaining time
 		if(roundStartTime > 0){
 			rt = gs.time + roundStartTime -  std::time(0);
-							// printf("%s %d\n",player.getName(), playersMap.size());
 			
 			// time ends
 			if(rt <= 0){

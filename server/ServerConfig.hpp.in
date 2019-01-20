@@ -5,6 +5,8 @@
 #define MAX_EVENTS 1
 #define X_FIELDS 11
 #define Y_FIELDS 11
+#define MAX_X_FIELDS 33
+#define MAX_Y_FIELDS 33
 #define READ_BUFFER 255
 #define WRITE_BUFFER 255
 #define MAX_PLAYERS 8
