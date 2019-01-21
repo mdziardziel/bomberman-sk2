@@ -20,7 +20,7 @@ struct GameSettings{
     int time;
 
     GameSettings(){
-        time = 15;
+        time = 60*3;
         mapX = 8;
         mapY = 8;
     }
