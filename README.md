@@ -1,7 +1,7 @@
-To compile server/client app:
-- go to server/client app `cd server` or `cd client`
+To compile server app:
+- go to server app `cd server` or `cd client`
 - create cmake files `cmake .`
 - create binaries `make`
-- run binaries from `server/bin` or `client/bin` folder, for example `bin/./BombermanServer` or `bin/./BombermanClient`
+- run binaries from `server/bin` folder,  `bin/./BombermanServer`
 
-Or just run script `run_client.sh` or `run_server.sh`
+Or just run script or `run_server.sh`
